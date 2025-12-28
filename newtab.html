@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nowa Karta</title>
+  <link rel="stylesheet" href="newtab.css" type="text/css" />
+</head>
+<body>
+  <!-- tło (warstwa do fade-in) -->
+  <div id="bgLayer"></div>
+
+  <!-- główna zawartość -->
+  <div class="overlay">
+    <div class="center-wrap">
+      <div class="clock" id="clock">--:--</div>
+
+      <div class="search-box">
+        <form id="searchForm" autocomplete="off">
+          <input id="searchInput" name="q" type="text" placeholder="Szukaj..." />
+        </form>
+      </div>
+
+      <div class="shortcuts" id="shortcuts" aria-live="polite"></div>
+
+      <button id="addShortcutBtn" class="add-shortcut" title="Dodaj skrót">＋ Dodaj skrót</button>
+    </div>
+  </div>
+
+  <!-- lewy dolny panel (wybór wyszukiwarki + ustaw tapetę) -->
+  <div class="bottom-left-controls" id="bottomLeft">
+    <label for="bgUpload" class="control-btn" title="Ustaw tapetę">Ustaw tapetę</label>
+    <input id="bgUpload" accept="image/*" type="file" hidden />
+  </div>
+
+  <!-- popup wyboru wyszukiwarki -->
+  <script src="newtab.js"></script>
+  <button id="themeToggle" class="theme-btn">Motyw</button>
+
+
+<div id="editShortcutModal" class="modal hidden" aria-hidden="true">
+  <div class="modal-content">
+    <h3 class="modal-title">Edytuj skrót</h3>
+    <input type="text" id="editName" class="modal-input" placeholder="Nazwa" />
+    <input type="text" id="editUrl" class="modal-input" placeholder="Adres URL (np. https://example.com)" />
+    <div class="modal-actions">
+      <button id="cancelEdit" class="control-btn">Anuluj</button>
+      <button id="saveEdit" class="control-btn">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

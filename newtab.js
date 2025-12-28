@@ -1,0 +1,546 @@
+
+function normalizeUrl(url) {
+    if (!/^https?:\/\//i.test(url)) {
+        return "https://" + url;
+    }
+    return url;
+}
+
+// ====== KONFIG ======
+const searchEngines = {
+  google: { name: "Google", base: "https://www.google.com/search?q=", domain: "google.com" },
+  duck:   { name: "DuckDuckGo", base: "https://duckduckgo.com/?q=", domain: "duckduckgo.com" },
+  bing:   { name: "Bing", base: "https://www.bing.com/search?q=", domain: "bing.com" },
+  brave:  { name: "Brave Search", base: "https://search.brave.com/search?q=", domain: "search.brave.com" }
+};
+
+const DEFAULT_ENGINE_KEY = localStorage.getItem("searchEngine") || "google";
+
+// ====== ELEMENTY ======
+const clockEl = document.getElementById("clock");
+const bgInput = document.getElementById("bgUpload");
+const bgLayer = document.getElementById("bgLayer");
+const searchForm = document.getElementById("searchForm");
+const searchInput = document.getElementById("searchInput");
+const shortcutsContainer = document.getElementById("shortcuts");
+const addShortcutBtn = document.getElementById("addShortcutBtn");
+
+let currentEngineKey = DEFAULT_ENGINE_KEY;
+let shortcuts = JSON.parse(localStorage.getItem("shortcuts") || "[]");
+
+// ====== ZEGAR ======
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,"0");
+  const m = String(now.getMinutes()).padStart(2,"0");
+  clockEl.textContent = `${h}:${m}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ====== TAPETA ======
+function applyBackgroundDataUrl(dataUrl, animate = true) {
+  if (!bgLayer) return;
+  if (!animate) {
+    bgLayer.style.backgroundImage = `url('${dataUrl}')`;
+    bgLayer.style.opacity = "1";
+    return;
+  }
+  bgLayer.style.opacity = "0";
+  setTimeout(() => {
+    bgLayer.style.backgroundImage = `url('${dataUrl}')`;
+    bgLayer.style.opacity = "1";
+  }, 260);
+}
+
+const savedBg = localStorage.getItem("customBackground");
+if (savedBg) applyBackgroundDataUrl(savedBg, false);
+
+bgInput.addEventListener("change", (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const dataUrl = ev.target.result;
+    applyBackgroundDataUrl(dataUrl, true);
+    localStorage.setItem("customBackground", dataUrl);
+  };
+  reader.readAsDataURL(file);
+});
+
+// ====== WYSZUKIWARKA ======
+
+// (Usunięto: interfejs wyboru wyszukiwarki — używana będzie domyślna przeglądarki)
+
+searchForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = searchInput.value.trim();
+  if (!q) return;
+  // Użyj domyślnej wyszukiwarki przeglądarki przez chrome.search.query (jeśli dostępne)
+  try {
+    if (chrome && chrome.search && typeof chrome.search.query === "function") {
+      chrome.search.query({ text: q });
+      return;
+    }
+  } catch (err) { /* fallback dalej */ }
+  // Fallback: użyj Google, jeśli chrome.search.query nie jest dostępne
+  const target = searchEngines.google.base + encodeURIComponent(q);
+  window.location.href = target;
+});
+
+// ====== SKRÓTY ======
+function renderShortcuts() {
+  shortcutsContainer.innerHTML = "";
+  shortcuts.forEach((s, i) => {
+    const a = document.createElement("a");
+    a.dataset.index = i;
+    a.className = "shortcut";
+    a.href = s.url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    const iconWrap = document.createElement("div");
+    iconWrap.className = "shortcut-icon";
+    const img = document.createElement("img");
+    img.src = s.icon;
+    img.alt = s.name;
+    img.onerror = function() {
+      img.style.display = "none";
+      const fallback = document.createElement("div");
+      fallback.style.fontSize = "1.2rem";
+      fallback.style.color = "white";
+      fallback.textContent = s.name[0] ? s.name[0].toUpperCase() : "•";
+      iconWrap.appendChild(fallback);
+    };
+    iconWrap.appendChild(img);
+
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "shortcut-name";
+    nameDiv.textContent = s.name;
+
+    a.appendChild(iconWrap);
+    a.appendChild(nameDiv);
+
+    a.addEventListener("contextmenu", (ev) => {
+      ev.preventDefault();
+      const ok = confirm(`Usunąć skrót "${s.name}"?`);
+      if (ok) {
+        shortcuts.splice(i,1);
+        localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
+        renderShortcuts();
+      }
+    });
+
+    shortcutsContainer.appendChild(a);
+  });
+}
+renderShortcuts();
+
+addShortcutBtn.addEventListener("click", () => {
+  let url = prompt("Adres URL:");
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./,"");
+    const defaultName = host;
+    const name = prompt("Nazwa skrótu (ENTER = domyślna):", defaultName) || defaultName;
+    const favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
+
+    shortcuts.push({ name, url: parsed.href, icon: favicon });
+    localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
+    renderShortcuts();
+  } catch (err) {
+    alert("Nieprawidłowy adres URL.");
+  }
+});
+
+// ====== DRAG & DROP: przeciągnij link na przycisk "Dodaj skrót" lub do sekcji skrótów ======
+function extractUrlFromDataTransfer(dt) {
+  try {
+    if (!dt) return null;
+    // text/uri-list (contains url)
+    if (dt.types && Array.from(dt.types).includes('text/uri-list')) {
+      const v = dt.getData('text/uri-list').split('\n')[0];
+      if (v) return v.trim();
+    }
+    // text/plain
+    const plain = dt.getData('text/plain');
+    if (plain && /https?:\/\//.test(plain)) return plain.trim();
+    // text/html -> try to extract href
+    const html = dt.getData('text/html');
+    if (html) {
+      const hrefMatch = html.match(/href=["']?([^"' >]+)/i);
+      if (hrefMatch) return hrefMatch[1];
+      // or anchor tag
+      const aMatch = html.match(/<a[^>]+href=["']?([^"' >]+)/i);
+      if (aMatch) return aMatch[1];
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+
+// Async extractor for dataTransfer (handles dt.items.getAsString fallbacks)
+function extractUrlFromDataTransferAsync(dt, cb) {
+  try {
+    if (!dt) return cb(null);
+    // Try common types first (synchronous)
+    try { const v = dt.getData('text/uri-list'); if (v) return cb(v.split('\n')[0].trim()); } catch(e){}
+    try { const v = dt.getData('URL'); if (v) return cb(v.trim()); } catch(e){}
+    try { const v = dt.getData('text/plain'); if (v && /https?:\/\//.test(v)) return cb(v.trim()); } catch(e){}
+    try { const html = dt.getData('text/html'); if (html) { const hrefMatch = html.match(/href=["']?([^"' >]+)/i); if (hrefMatch) return cb(hrefMatch[1]); const aMatch = html.match(/<a[^>]+href=["']?([^"' >]+)/i); if (aMatch) return cb(aMatch[1]); } } catch(e){}
+    // If dt.items available, try getAsString on first string item
+    if (dt.items && dt.items.length) {
+      for (let i = 0; i < dt.items.length; i++) {
+        const it = dt.items[i];
+        if (it.kind === 'string') {
+          try {
+            it.getAsString(function(s) {
+              if (!s) return cb(null);
+              // if html, extract href
+              const m = s.match(/href=["']?([^"' >]+)/i) || s.match(/<a[^>]+href=["']?([^"' >]+)/i);
+              const candidate = m ? m[1] : s.split(/\r?\n/)[0].trim();
+              return cb(candidate);
+            });
+            return;
+          } catch(e){ continue; }
+        }
+      }
+    }
+    // as last resort, callback null
+    return cb(null);
+  } catch (e) {
+    try { return cb(null); } catch(e2){}
+  }
+}
+
+
+function addShortcutFromUrl(rawUrl) {
+  if (!rawUrl) return;
+  let url = rawUrl.trim();
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+    const defaultName = host;
+    const name = defaultName;
+    const favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
+    // push to shortcuts and render
+    shortcuts.push({ name, url: parsed.href, icon: favicon });
+    localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
+    renderShortcuts();
+  } catch (err) {
+    console.warn("Nieudane dodanie skrótu z DnD:", rawUrl);
+  }
+}
+
+// Visual feedback class
+function addDropHighlight(el) {
+  el.classList.add('dnd-highlight');
+}
+function removeDropHighlight(el) {
+  el.classList.remove('dnd-highlight');
+}
+
+// Setup for addShortcutBtn
+addShortcutBtn.addEventListener('dragover', (ev) => {
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'copy';
+  addDropHighlight(addShortcutBtn);
+});
+addShortcutBtn.addEventListener('dragleave', () => removeDropHighlight(addShortcutBtn));
+addShortcutBtn.addEventListener('drop', (ev) => {
+  ev.preventDefault();
+  removeDropHighlight(addShortcutBtn);
+  extractUrlFromDataTransferAsync(ev.dataTransfer, function(url) {
+    url = url || ev.dataTransfer.getData('text/plain');
+    if (url) addShortcutFromUrl(url);
+  });
+});
+
+// Setup for whole shortcuts container (allows dropping into area)
+shortcutsContainer.addEventListener('dragover', (ev) => {
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'copy';
+  addDropHighlight(shortcutsContainer);
+});
+shortcutsContainer.addEventListener('dragleave', () => removeDropHighlight(shortcutsContainer));
+shortcutsContainer.addEventListener('drop', (ev) => {
+  ev.preventDefault();
+  removeDropHighlight(shortcutsContainer);
+  extractUrlFromDataTransferAsync(ev.dataTransfer, function(url) {
+    url = url || ev.dataTransfer.getData('text/plain');
+    if (url) addShortcutFromUrl(url);
+  });
+});
+
+
+
+
+
+
+// ====== MOTYW (tylko przyciski i tekst) ======
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("themeToggle");
+  if (!btn) return;
+
+  function setTheme(mode) {
+    if (mode === "light") {
+      document.documentElement.style.setProperty("--text", "#000000");
+      document.documentElement.style.setProperty("--muted", "rgba(0,0,0,0.65)");
+      document.documentElement.style.setProperty("--accent", "#3333ff");
+    } else {
+      document.documentElement.style.setProperty("--text", "#ffffff");
+      document.documentElement.style.setProperty("--muted", "rgba(255,255,255,0.65)");
+      document.documentElement.style.setProperty("--accent", "#ff3333");
+    }
+    localStorage.setItem("theme", mode);
+  }
+
+  let current = localStorage.getItem("theme") || "dark";
+  setTheme(current);
+
+  btn.addEventListener("click", () => {
+    current = (current === "dark") ? "light" : "dark";
+    setTheme(current);
+  });
+});
+
+
+// --- Edit shortcut functionality ---
+let editingShortcutIndex = null;
+
+function openEditModal(index) {
+  const modal = document.getElementById("editShortcutModal");
+  const nameInput = document.getElementById("editName");
+  const urlInput = document.getElementById("editUrl");
+  if (!modal || !nameInput || !urlInput) return;
+  const shortcutsArr = JSON.parse(localStorage.getItem("shortcuts") || "[]");
+  const sc = shortcutsArr[index];
+  if (!sc) return;
+  editingShortcutIndex = Number(index);
+  nameInput.value = sc.name || "";
+  urlInput.value = sc.url || "";
+  modal.classList.remove("hidden");
+  modal.setAttribute('aria-hidden','false');
+  // focus and select url for quick editing
+  urlInput.focus();
+  urlInput.select();
+}
+
+// Attach save/cancel handlers for modal using editingShortcutIndex and editShortcutModal
+(function(){
+  const modal = document.getElementById('editShortcutModal');
+  const saveBtn = document.getElementById('saveEdit');
+  const cancelBtn = document.getElementById('cancelEdit');
+  const nameInput = document.getElementById('editName');
+  const urlInput = document.getElementById('editUrl');
+
+  function closeModal() {
+    if (modal) { modal.classList.add('hidden'); modal.setAttribute('aria-hidden','true'); }
+    editingShortcutIndex = null;
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function(){
+      try {
+        const idx = editingShortcutIndex;
+        if (idx === null || idx === undefined) { closeModal(); return; }
+        const shortcutsArr = JSON.parse(localStorage.getItem('shortcuts') || '[]');
+        if (!shortcutsArr[idx]) { closeModal(); return; }
+        const newName = (nameInput.value||'').trim() || shortcutsArr[idx].name;
+        let newUrl = (urlInput.value||'').trim();
+        if (!newUrl) { alert('Adres URL nie może być pusty.'); return; }
+        newUrl = normalizeUrl(newUrl);
+        const parsed = new URL(newUrl);
+        shortcutsArr[idx].name = newName;
+        shortcutsArr[idx].url = parsed.href;
+        shortcutsArr[idx].icon = `https://www.google.com/s2/favicons?domain=${parsed.hostname.replace(/^www\./,'')}&sz=128`;
+        localStorage.setItem('shortcuts', JSON.stringify(shortcutsArr));
+        renderShortcuts();
+      } catch (err) {
+        console.warn('Error saving edited shortcut', err);
+        alert('Nieprawidłowy adres URL.');
+      } finally {
+        closeModal();
+      }
+    });
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function(){
+      closeModal();
+    });
+  }
+
+  // Close modal on Escape
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // Click outside modal content closes
+  if (modal) {
+    modal.addEventListener('click', function(e){
+      if (e.target === modal) closeModal();
+    });
+  }
+})();
+
+
+
+// Safe attach save/cancel handlers (only if elements exist)
+(function attachEditModalHandlers() {
+  const saveBtn = document.getElementById("saveEdit");
+  const cancelBtn = document.getElementById("cancelEdit");
+  const modal = document.getElementById("editShortcutModal");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => {
+      try {
+        const shortcutsArr = JSON.parse(localStorage.getItem("shortcuts") || "[]");
+        if (editingShortcutIndex !== null && shortcutsArr[editingShortcutIndex]) {
+          const nameVal = (document.getElementById("editName").value || "").trim() || shortcutsArr[editingShortcutIndex].name;
+          let urlVal = (document.getElementById("editUrl").value || "").trim();
+          if (!urlVal) { alert("Adres URL nie może być pusty."); return; }
+          urlVal = normalizeUrl(urlVal);
+          // validate URL
+          const parsed = new URL(urlVal);
+          shortcutsArr[editingShortcutIndex].name = nameVal;
+          shortcutsArr[editingShortcutIndex].url = parsed.href;
+          shortcutsArr[editingShortcutIndex].icon = `https://www.google.com/s2/favicons?domain=${parsed.hostname.replace(/^www\\./,'')}&sz=128`;
+          localStorage.setItem("shortcuts", JSON.stringify(shortcutsArr));
+          renderShortcuts();
+        }
+      } catch (err) {
+        console.warn("Błąd podczas zapisu edycji:", err);
+        alert("Nieprawidłowy adres URL.");
+      } finally {
+        if (modal) { modal.classList.add("hidden"); modal.setAttribute('aria-hidden','true'); }
+      }
+    });
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => {
+      if (modal) { modal.classList.add("hidden"); modal.setAttribute('aria-hidden','true'); }
+    });
+  }
+})();
+
+// Edit shortcut with Ctrl (or Cmd on mac) + left click on a shortcut element
+document.addEventListener("click", function(e) {
+  try {
+    // Only respond to primary (left) button clicks
+    if (typeof e.button !== 'undefined' && e.button !== 0) return;
+    // require ctrlKey (Windows/Linux) or metaKey (Mac)
+    if (!e.ctrlKey && !e.metaKey) return;
+    const shortcutEl = e.target && typeof e.target.closest === 'function' ? e.target.closest(".shortcut") : null;
+    if (!shortcutEl) return;
+    e.preventDefault();
+    const idx = shortcutEl.dataset.index;
+    if (idx === undefined || idx === null) return;
+    openEditModal(Number(idx));
+  } catch (err) {
+    console.warn("Error in ctrl/cmd+click edit handler", err);
+  }
+});
+
+
+
+
+
+
+
+
+
+// --- Edit modal handlers (final fix) ---
+document.addEventListener("DOMContentLoaded", () => {
+  const saveBtn = document.getElementById("saveEdit");
+  const cancelBtn = document.getElementById("cancelEdit");
+  const modal = document.getElementById("editShortcutModal");
+  if (!saveBtn || !cancelBtn || !modal) return;
+
+  saveBtn.addEventListener("click", () => {
+    if (editingShortcutIndex !== null && shortcuts[editingShortcutIndex]) {
+      const nameVal = document.getElementById("editName").value.trim() || shortcuts[editingShortcutIndex].name;
+      let urlVal = document.getElementById("editUrl").value.trim();
+      if (!/^https?:\/\//i.test(urlVal)) urlVal = "https://" + urlVal;
+      try {
+        const parsed = new URL(urlVal);
+        shortcuts[editingShortcutIndex].name = nameVal;
+        shortcuts[editingShortcutIndex].url = parsed.href;
+        shortcuts[editingShortcutIndex].icon = `https://www.google.com/s2/favicons?domain=${parsed.hostname.replace(/^www\./,'')}&sz=128`;
+        localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
+        renderShortcuts();
+      } catch (err) {
+        alert("Nieprawidłowy adres URL.");
+      }
+    }
+    modal.classList.add("hidden");
+  });
+
+  cancelBtn.addEventListener("click", () => {
+    modal.classList.add("hidden");
+  });
+
+  // Zamknij klikając w tło lub Escape
+  modal.addEventListener("click", (ev) => {
+    if (ev.target === modal) {
+      modal.classList.add("hidden");
+    }
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") modal.classList.add("hidden");
+  });
+});
+
+
+
+function setupDragAndDrop() {
+  if (!addShortcutBtn || !shortcutsContainer) return;
+  function extractUrlFromDataTransfer(dt) {
+    try {
+      if (!dt) return null;
+      if (dt.types && Array.from(dt.types).includes('text/uri-list')) {
+        const v = dt.getData('text/uri-list').split('\n')[0];
+        if (v) return v.trim();
+      }
+      const plain = dt.getData('text/plain');
+      if (plain && /https?:\/\//.test(plain)) return plain.trim();
+      const html = dt.getData('text/html');
+      if (html) {
+        const hrefMatch = html.match(/href=["']?([^"' >]+)/i);
+        if (hrefMatch) return hrefMatch[1];
+        const aMatch = html.match(/<a[^>]+href=["']?([^"' >]+)/i);
+        if (aMatch) return aMatch[1];
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function addShortcutFromUrl(rawUrl) {
+    if (!rawUrl) return;
+    let url = rawUrl.trim();
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.replace(/^www\./, "");
+      const defaultName = host;
+      const name = defaultName;
+      const favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
+      shortcuts.push({ name, url: parsed.href, icon: favicon });
+      localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
+      renderShortcuts();
+    } catch (err) {
+      console.warn("Nieudane dodanie skrótu z DnD:", rawUrl);
+    }
+  }
+  
+  
+
+  
+  
+}
+
+
+document.addEventListener('DOMContentLoaded', setupDragAndDrop);
