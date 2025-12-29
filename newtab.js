@@ -24,9 +24,11 @@ const searchForm = document.getElementById("searchForm");
 const searchInput = document.getElementById("searchInput");
 const shortcutsContainer = document.getElementById("shortcuts");
 const addShortcutBtn = document.getElementById("addShortcutBtn");
+const focusModeBtn = document.getElementById("focusModeBtn");
 
 let currentEngineKey = DEFAULT_ENGINE_KEY;
 let shortcuts = JSON.parse(localStorage.getItem("shortcuts") || "[]");
+let isFocusMode = localStorage.getItem("focusMode") === "true";
 
 // ====== ZEGAR ======
 function updateClock() {
@@ -67,6 +69,185 @@ bgInput.addEventListener("change", (e) => {
   };
   reader.readAsDataURL(file);
 });
+
+
+// ====== BLUR / BRIGHTNESS SLIDERS ======
+const blurSlider = document.getElementById("blurSlider");
+const brightnessSlider = document.getElementById("brightnessSlider");
+
+function updateBgFilters() {
+    const blurVal = blurSlider.value;
+    const brightnessVal = brightnessSlider.value;
+    // Apply filters to bgLayer
+    // Brightness is percent, blur is px
+    // CSS filter: brightness(%) blur(px)
+    bgLayer.style.filter = `brightness(${brightnessVal}%) blur(${blurVal}px)`;
+
+    localStorage.setItem("bgBlur", blurVal);
+    localStorage.setItem("bgBrightness", brightnessVal);
+}
+
+// Init values from localStorage or default
+const savedBlur = localStorage.getItem("bgBlur") || "0";
+const savedBrightness = localStorage.getItem("bgBrightness") || "100";
+
+if (blurSlider && brightnessSlider) {
+    blurSlider.value = savedBlur;
+    brightnessSlider.value = savedBrightness;
+    updateBgFilters();
+
+    blurSlider.addEventListener("input", updateBgFilters);
+    brightnessSlider.addEventListener("input", updateBgFilters);
+}
+
+// ====== LANGUAGE / TŁUMACZENIA ======
+const translations = {
+  pl: {
+    addShortcut: "＋ Dodaj skrót",
+    customizeBtn: "Personalizacja",
+    setWallpaper: "Ustaw tapetę",
+    theme: "Motyw",
+    viewBtn: "Widok",
+    focusMode: "Tryb skupienia",
+    exitFocus: "Wyłącz skupienie",
+    blur: "Blur",
+    brightness: "Jasność",
+    language: "Język: PL",
+    searchPlaceholder: "Szukaj...",
+    editShortcut: "Edytuj skrót",
+    namePlaceholder: "Nazwa",
+    urlPlaceholder: "Adres URL (np. https://example.com)",
+    cancel: "Anuluj",
+    save: "Zapisz",
+    confirmDelete: "Usunąć skrót?",
+    invalidUrl: "Nieprawidłowy adres URL.",
+    urlPrompt: "Adres URL:",
+    namePrompt: "Nazwa skrótu (ENTER = domyślna):",
+    fontColor: "Kolor czcionki"
+  },
+  en: {
+    addShortcut: "＋ Add Shortcut",
+    customizeBtn: "Customize",
+    setWallpaper: "Set Wallpaper",
+    theme: "Theme",
+    viewBtn: "View",
+    focusMode: "Focus Mode",
+    exitFocus: "Exit Focus",
+    blur: "Blur",
+    brightness: "Brightness",
+    language: "Language: EN",
+    searchPlaceholder: "Search...",
+    editShortcut: "Edit Shortcut",
+    namePlaceholder: "Name",
+    urlPlaceholder: "URL Address (e.g. https://example.com)",
+    cancel: "Cancel",
+    save: "Save",
+    confirmDelete: "Delete shortcut?",
+    invalidUrl: "Invalid URL.",
+    urlPrompt: "URL Address:",
+    namePrompt: "Shortcut Name (ENTER = default):",
+    fontColor: "Font Color"
+  }
+};
+
+let currentLang = localStorage.getItem("language") || "pl";
+
+function updateLanguage() {
+  const t = translations[currentLang];
+
+  // Update elements with data-i18n
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    if (t[key]) {
+      // For inputs with button role or just text content
+      if (key === "focusMode" && isFocusMode) {
+          el.textContent = t["exitFocus"];
+      } else {
+          el.textContent = t[key];
+      }
+    }
+  });
+
+  // Update placeholders
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    if (t[key]) el.placeholder = t[key];
+  });
+
+  // Update search input specifically if not covered above
+  if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+}
+
+const langToggle = document.getElementById("langToggle");
+if (langToggle) {
+    langToggle.addEventListener("click", () => {
+        currentLang = (currentLang === "pl") ? "en" : "pl";
+        localStorage.setItem("language", currentLang);
+        updateLanguage();
+    });
+}
+// Initial apply
+updateLanguage();
+
+
+// ====== MENUS (Customize / View) ======
+function setupMenus() {
+  const toggles = document.querySelectorAll(".menu-toggle");
+
+  toggles.forEach(toggle => {
+    const menu = toggle.nextElementSibling;
+    if (!menu || !menu.classList.contains("menu-content")) return;
+
+    // Click handler
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Close others
+      document.querySelectorAll(".menu-content").forEach(m => {
+        if (m !== menu) m.classList.add("hidden");
+      });
+      // Ensure open (fix conflict with hover)
+      menu.classList.remove("hidden");
+    });
+
+    // Hover handler (mouse enter on button)
+    toggle.addEventListener("mouseenter", () => {
+      // Close others
+      document.querySelectorAll(".menu-content").forEach(m => {
+        if (m !== menu) m.classList.add("hidden");
+      });
+      menu.classList.remove("hidden");
+    });
+
+    // Leave handler (mouse leave button) - verify if entering menu
+    toggle.addEventListener("mouseleave", (e) => {
+       // We need a small delay or check if moving to menu
+       setTimeout(() => {
+         if (!menu.matches(":hover") && !toggle.matches(":hover")) {
+           menu.classList.add("hidden");
+         }
+       }, 100);
+    });
+
+    // Leave handler for menu
+    menu.addEventListener("mouseleave", () => {
+      setTimeout(() => {
+         if (!menu.matches(":hover") && !toggle.matches(":hover")) {
+           menu.classList.add("hidden");
+         }
+       }, 100);
+    });
+  });
+
+  // Close menus when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".menu-content") && !e.target.closest(".menu-toggle")) {
+      document.querySelectorAll(".menu-content").forEach(m => m.classList.add("hidden"));
+    }
+  });
+}
+setupMenus();
+
+
 
 // ====== WYSZUKIWARKA ======
 
@@ -281,10 +462,37 @@ shortcutsContainer.addEventListener('drop', (ev) => {
 
 
 
-// ====== MOTYW (tylko przyciski i tekst) ======
+// ====== MOTYW & KOLOR CZCIONKI ======
 document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("themeToggle");
-  if (!btn) return;
+  const colorInput = document.getElementById("fontColorInput");
+  const colorPicker = document.getElementById("fontColorPicker");
+
+  // Helper: Hex to RGBA
+  function hexToRgba(hex, alpha) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+    const bigint = parseInt(hex, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  function applyCustomColor(hex) {
+    if (!hex || !/^#([0-9A-F]{3}){1,2}$/i.test(hex)) return;
+
+    // Apply text color
+    document.documentElement.style.setProperty("--text", hex);
+    // Apply muted color (same RGB, 0.65 opacity)
+    document.documentElement.style.setProperty("--muted", hexToRgba(hex, 0.65));
+
+    // Update inputs
+    if (colorInput) colorInput.value = hex;
+    if (colorPicker) colorPicker.value = hex;
+
+    localStorage.setItem("customFontColor", hex);
+  }
 
   function setTheme(mode) {
     if (mode === "light") {
@@ -299,13 +507,46 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("theme", mode);
   }
 
-  let current = localStorage.getItem("theme") || "dark";
-  setTheme(current);
+  // Init Theme
+  let currentTheme = localStorage.getItem("theme") || "dark";
 
-  btn.addEventListener("click", () => {
-    current = (current === "dark") ? "light" : "dark";
-    setTheme(current);
-  });
+  // Check for saved custom color
+  const savedColor = localStorage.getItem("customFontColor");
+  if (savedColor) {
+    // If custom color exists, apply it (overrides theme text colors)
+    setTheme(currentTheme); // Set accent colors first
+    applyCustomColor(savedColor);
+  } else {
+    setTheme(currentTheme);
+  }
+
+  // Theme Toggle Logic
+  if (btn) {
+    btn.addEventListener("click", () => {
+        // Reset custom color
+        localStorage.removeItem("customFontColor");
+        if (colorInput) colorInput.value = "";
+
+        // Toggle theme
+        currentTheme = (currentTheme === "dark") ? "light" : "dark";
+        setTheme(currentTheme);
+    });
+  }
+
+  // Custom Color Input Logic
+  if (colorInput && colorPicker) {
+      colorInput.addEventListener("input", (e) => {
+          let val = e.target.value.trim();
+          if (val && !val.startsWith("#")) val = "#" + val;
+          if (/^#([0-9A-F]{3}){1,2}$/i.test(val)) {
+              applyCustomColor(val);
+          }
+      });
+
+      colorPicker.addEventListener("input", (e) => {
+          applyCustomColor(e.target.value);
+      });
+  }
 });
 
 
@@ -544,3 +785,26 @@ function setupDragAndDrop() {
 
 
 document.addEventListener('DOMContentLoaded', setupDragAndDrop);
+// ====== TRYB SKUPIENIA (FOCUS MODE) LOGIC ======
+function toggleFocusMode() {
+    isFocusMode = !isFocusMode;
+    applyFocusMode();
+    localStorage.setItem("focusMode", isFocusMode);
+    // Update text if language is set
+    updateLanguage();
+}
+
+function applyFocusMode() {
+    if (isFocusMode) {
+        document.body.classList.add("focus-mode");
+    } else {
+        document.body.classList.remove("focus-mode");
+    }
+}
+
+// Init focus mode on load
+if (focusModeBtn) {
+    focusModeBtn.addEventListener("click", toggleFocusMode);
+}
+// Apply initial state
+applyFocusMode();
