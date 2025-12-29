@@ -141,29 +141,111 @@ html,body{
   position: fixed;
   left: 20px;
   bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 2;
-  align-items: flex-start;
+  z-index: 9999;
 }
 
-.bottom-left-controls .control-btn {
-  min-width: 160px;              /* identyczna długość */
-  padding: 8px 14px;
+.bottom-right-controls {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+}
+
+/* Menu Toggle Button Style */
+.menu-toggle {
+  min-width: 140px;
+  padding: 10px 18px;
   border-radius: 999px;
   background: var(--glass);
   border: 1px solid rgba(255,255,255,0.04);
   color: var(--text);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   box-shadow: var(--small-shadow);
   text-align: center;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
+  z-index: 10000;
+  position: relative;
+}
+.menu-toggle:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
 }
 
-.bottom-left-controls .control-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+/* Menu Content (Popup) */
+.menu-content {
+  position: absolute;
+  bottom: 55px; /* above the toggle button */
+  background: var(--glass-strong);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 12px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+
+  /* Start state: hidden */
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Left menu aligns left, Right menu aligns right */
+.bottom-left-controls .menu-content { left: 0; }
+.bottom-right-controls .menu-content { right: 0; }
+
+/* Active state: visible */
+/* Use specificity or !important if needed, but the JS removes .hidden class */
+.menu-content:not(.hidden) {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  display: flex !important;
+}
+
+/* Menu Items */
+.menu-item {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.menu-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.menu-item-static {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.menu-item-static span { margin-bottom: 2px; }
+
+/* Sliders inside menu */
+.menu-item-static input[type="range"] {
+  width: 100%;
+  cursor: pointer;
+}
+
+.control-btn { /* fallback for other buttons */
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.04);
 }
 
 
@@ -203,9 +285,6 @@ html,body{
 
 
 .theme-btn {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
   padding: 8px 18px;
   border-radius: var(--radius-md);
   border: none;
@@ -215,12 +294,27 @@ html,body{
   background: var(--glass-strong);
   color: var(--text);
   box-shadow: var(--small-shadow);
-  transition: background 0.3s ease, color 0.3s ease;
-  z-index: 9999;
+  transition: all 0.3s ease;
 }
 .theme-btn:hover {
   background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, #ff6666 100%);
   color: #fff;
+}
+
+/* Focus Mode active state */
+body.focus-mode .search-box,
+body.focus-mode .shortcuts,
+body.focus-mode #addShortcutBtn,
+body.focus-mode .bottom-left-controls,
+body.focus-mode #themeToggle {
+    display: none !important;
+}
+
+/* Ensure Focus Mode button stays visible and indicates active state */
+body.focus-mode #focusModeBtn {
+    background: var(--accent);
+    color: white;
 }
 
 

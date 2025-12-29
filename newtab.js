@@ -68,6 +68,185 @@ bgInput.addEventListener("change", (e) => {
   reader.readAsDataURL(file);
 });
 
+
+// ====== BLUR / BRIGHTNESS SLIDERS ======
+const blurSlider = document.getElementById("blurSlider");
+const brightnessSlider = document.getElementById("brightnessSlider");
+
+function updateBgFilters() {
+    const blurVal = blurSlider.value;
+    const brightnessVal = brightnessSlider.value;
+    // Apply filters to bgLayer
+    // Brightness is percent, blur is px
+    // CSS filter: brightness(%) blur(px)
+    bgLayer.style.filter = `brightness(${brightnessVal}%) blur(${blurVal}px)`;
+
+    localStorage.setItem("bgBlur", blurVal);
+    localStorage.setItem("bgBrightness", brightnessVal);
+}
+
+// Init values from localStorage or default
+const savedBlur = localStorage.getItem("bgBlur") || "0";
+const savedBrightness = localStorage.getItem("bgBrightness") || "100";
+
+if (blurSlider && brightnessSlider) {
+    blurSlider.value = savedBlur;
+    brightnessSlider.value = savedBrightness;
+    updateBgFilters();
+
+    blurSlider.addEventListener("input", updateBgFilters);
+    brightnessSlider.addEventListener("input", updateBgFilters);
+}
+
+// ====== LANGUAGE / TŁUMACZENIA ======
+const translations = {
+  pl: {
+    addShortcut: "＋ Dodaj skrót",
+    customizeBtn: "Personalizacja",
+    setWallpaper: "Ustaw tapetę",
+    theme: "Motyw",
+    viewBtn: "Widok",
+    focusMode: "Tryb skupienia",
+    exitFocus: "Wyłącz skupienie",
+    blur: "Blur",
+    brightness: "Jasność",
+    language: "Język: PL",
+    searchPlaceholder: "Szukaj...",
+    editShortcut: "Edytuj skrót",
+    namePlaceholder: "Nazwa",
+    urlPlaceholder: "Adres URL (np. https://example.com)",
+    cancel: "Anuluj",
+    save: "Zapisz",
+    confirmDelete: "Usunąć skrót?",
+    invalidUrl: "Nieprawidłowy adres URL.",
+    urlPrompt: "Adres URL:",
+    namePrompt: "Nazwa skrótu (ENTER = domyślna):"
+  },
+  en: {
+    addShortcut: "＋ Add Shortcut",
+    customizeBtn: "Customize",
+    setWallpaper: "Set Wallpaper",
+    theme: "Theme",
+    viewBtn: "View",
+    focusMode: "Focus Mode",
+    exitFocus: "Exit Focus",
+    blur: "Blur",
+    brightness: "Brightness",
+    language: "Language: EN",
+    searchPlaceholder: "Search...",
+    editShortcut: "Edit Shortcut",
+    namePlaceholder: "Name",
+    urlPlaceholder: "URL Address (e.g. https://example.com)",
+    cancel: "Cancel",
+    save: "Save",
+    confirmDelete: "Delete shortcut?",
+    invalidUrl: "Invalid URL.",
+    urlPrompt: "URL Address:",
+    namePrompt: "Shortcut Name (ENTER = default):"
+  }
+};
+
+let currentLang = localStorage.getItem("language") || "pl";
+
+function updateLanguage() {
+  const t = translations[currentLang];
+
+  // Update elements with data-i18n
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    if (t[key]) {
+      // For inputs with button role or just text content
+      if (key === "focusMode" && isFocusMode) {
+          el.textContent = t["exitFocus"];
+      } else {
+          el.textContent = t[key];
+      }
+    }
+  });
+
+  // Update placeholders
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    if (t[key]) el.placeholder = t[key];
+  });
+
+  // Update search input specifically if not covered above
+  if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+}
+
+const langToggle = document.getElementById("langToggle");
+if (langToggle) {
+    langToggle.addEventListener("click", () => {
+        currentLang = (currentLang === "pl") ? "en" : "pl";
+        localStorage.setItem("language", currentLang);
+        updateLanguage();
+    });
+}
+// Initial apply
+updateLanguage();
+
+
+// ====== MENUS (Customize / View) ======
+function setupMenus() {
+  const toggles = document.querySelectorAll(".menu-toggle");
+
+  toggles.forEach(toggle => {
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation(); // prevent document click from closing immediately
+
+      // Find the corresponding menu (next sibling usually, but let's be safe)
+      // Based on HTML structure: button + div.menu-content
+      const menu = toggle.nextElementSibling;
+      if (menu && menu.classList.contains("menu-content")) {
+        // Close others
+        document.querySelectorAll(".menu-content").forEach(m => {
+          if (m !== menu) m.classList.add("hidden");
+        });
+        menu.classList.toggle("hidden");
+      }
+    });
+  });
+
+  // Close menus when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".menu-content") && !e.target.closest(".menu-toggle")) {
+      document.querySelectorAll(".menu-content").forEach(m => m.classList.add("hidden"));
+    }
+  });
+}
+setupMenus();
+
+
+// ====== TRYB SKUPIENIA (FOCUS MODE) ======
+const focusModeBtn = document.getElementById("focusModeBtn");
+let isFocusMode = localStorage.getItem("focusMode") === "true";
+
+function toggleFocusMode() {
+    isFocusMode = !isFocusMode;
+    applyFocusMode();
+    localStorage.setItem("focusMode", isFocusMode);
+}
+
+function applyFocusMode() {
+    const t = translations[currentLang];
+    const textSpan = focusModeBtn ? focusModeBtn.querySelector("span") : null;
+
+    if (isFocusMode) {
+        document.body.classList.add("focus-mode");
+        if (textSpan) textSpan.textContent = t.exitFocus;
+    } else {
+        document.body.classList.remove("focus-mode");
+        if (textSpan) textSpan.textContent = t.focusMode;
+    }
+}
+
+// Init focus mode on load
+if (focusModeBtn) {
+    focusModeBtn.addEventListener("click", toggleFocusMode);
+}
+// Apply initial state
+applyFocusMode();
+
 // ====== WYSZUKIWARKA ======
 
 // (Usunięto: interfejs wyboru wyszukiwarki — używana będzie domyślna przeglądarki)

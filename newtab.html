@@ -23,29 +23,61 @@
 
       <div class="shortcuts" id="shortcuts" aria-live="polite"></div>
 
-      <button id="addShortcutBtn" class="add-shortcut" title="Dodaj skrót">＋ Dodaj skrót</button>
+      <button id="addShortcutBtn" class="add-shortcut" data-i18n="addShortcut" title="Dodaj skrót">＋ Dodaj skrót</button>
     </div>
   </div>
 
-  <!-- lewy dolny panel (wybór wyszukiwarki + ustaw tapetę) -->
-  <div class="bottom-left-controls" id="bottomLeft">
-    <label for="bgUpload" class="control-btn" title="Ustaw tapetę">Ustaw tapetę</label>
-    <input id="bgUpload" accept="image/*" type="file" hidden />
+  <!-- Bottom Left: Customize (Personalizacja) -->
+  <div class="bottom-left-controls">
+    <button id="customizeBtn" class="control-btn menu-toggle" data-i18n="customizeBtn">Personalizacja</button>
+
+    <div id="customizeMenu" class="menu-content hidden">
+      <label for="bgUpload" class="menu-item" title="Ustaw tapetę">
+        <span data-i18n="setWallpaper">Ustaw tapetę</span>
+      </label>
+      <input id="bgUpload" accept="image/*" type="file" hidden />
+
+      <button id="themeToggle" class="menu-item">
+        <span data-i18n="theme">Motyw</span>
+      </button>
+    </div>
   </div>
 
-  <!-- popup wyboru wyszukiwarki -->
+  <!-- Bottom Right: View (Widok) -->
+  <div class="bottom-right-controls">
+    <button id="viewBtn" class="control-btn menu-toggle" data-i18n="viewBtn">Widok</button>
+
+    <div id="viewMenu" class="menu-content hidden">
+      <button id="focusModeBtn" class="menu-item">
+        <span data-i18n="focusMode">Tryb skupienia</span>
+      </button>
+
+      <div class="slider-container menu-item-static" title="Rozmycie tła">
+          <span data-i18n="blur">Blur</span>
+          <input type="range" id="blurSlider" min="0" max="20" value="0">
+      </div>
+      <div class="slider-container menu-item-static" title="Jasność tła">
+          <span data-i18n="brightness">Jasność</span>
+          <input type="range" id="brightnessSlider" min="20" max="100" value="100">
+      </div>
+
+      <button id="langToggle" class="menu-item">
+        <span data-i18n="language">Język: PL</span>
+      </button>
+    </div>
+  </div>
+
   <script src="newtab.js"></script>
-  <button id="themeToggle" class="theme-btn">Motyw</button>
 
 
 <div id="editShortcutModal" class="modal hidden" aria-hidden="true">
   <div class="modal-content">
-    <h3 class="modal-title">Edytuj skrót</h3>
-    <input type="text" id="editName" class="modal-input" placeholder="Nazwa" />
-    <input type="text" id="editUrl" class="modal-input" placeholder="Adres URL (np. https://example.com)" />
+    <h3 class="modal-title" data-i18n="editShortcut">Edytuj skrót</h3>
+    <input type="text" id="editName" class="modal-input" placeholder="Nazwa" data-i18n-placeholder="namePlaceholder" />
+    <input type="text" id="editUrl" class="modal-input" placeholder="Adres URL (np. https://example.com)" data-i18n-placeholder="urlPlaceholder" />
     <div class="modal-actions">
-      <button id="cancelEdit" class="control-btn">Anuluj</button>
-      <button id="saveEdit" class="control-btn">Zapisz</button>
+      <button id="cancelEdit" class="control-btn" data-i18n="cancel">Anuluj</button>
+      <button id="saveEdit" class="control-btn" data-i18n="save">Zapisz</button>
     </div>
   </div>
 </div>
