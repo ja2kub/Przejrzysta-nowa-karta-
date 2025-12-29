@@ -24,9 +24,11 @@ const searchForm = document.getElementById("searchForm");
 const searchInput = document.getElementById("searchInput");
 const shortcutsContainer = document.getElementById("shortcuts");
 const addShortcutBtn = document.getElementById("addShortcutBtn");
+const focusModeBtn = document.getElementById("focusModeBtn");
 
 let currentEngineKey = DEFAULT_ENGINE_KEY;
 let shortcuts = JSON.parse(localStorage.getItem("shortcuts") || "[]");
+let isFocusMode = localStorage.getItem("focusMode") === "true";
 
 // ====== ZEGAR ======
 function updateClock() {
@@ -67,6 +69,185 @@ bgInput.addEventListener("change", (e) => {
   };
   reader.readAsDataURL(file);
 });
+
+
+// ====== BLUR / BRIGHTNESS SLIDERS ======
+const blurSlider = document.getElementById("blurSlider");
+const brightnessSlider = document.getElementById("brightnessSlider");
+
+function updateBgFilters() {
+    const blurVal = blurSlider.value;
+    const brightnessVal = brightnessSlider.value;
+    // Apply filters to bgLayer
+    // Brightness is percent, blur is px
+    // CSS filter: brightness(%) blur(px)
+    bgLayer.style.filter = `brightness(${brightnessVal}%) blur(${blurVal}px)`;
+
+    localStorage.setItem("bgBlur", blurVal);
+    localStorage.setItem("bgBrightness", brightnessVal);
+}
+
+// Init values from localStorage or default
+const savedBlur = localStorage.getItem("bgBlur") || "0";
+const savedBrightness = localStorage.getItem("bgBrightness") || "100";
+
+if (blurSlider && brightnessSlider) {
+    blurSlider.value = savedBlur;
+    brightnessSlider.value = savedBrightness;
+    updateBgFilters();
+
+    blurSlider.addEventListener("input", updateBgFilters);
+    brightnessSlider.addEventListener("input", updateBgFilters);
+}
+
+// ====== LANGUAGE / TŁUMACZENIA ======
+const translations = {
+  pl: {
+    addShortcut: "＋ Dodaj skrót",
+    customizeBtn: "Personalizacja",
+    setWallpaper: "Ustaw tapetę",
+    theme: "Motyw",
+    viewBtn: "Widok",
+    focusMode: "Tryb skupienia",
+    exitFocus: "Wyłącz skupienie",
+    blur: "Blur",
+    brightness: "Jasność",
+    language: "Język: PL",
+    searchPlaceholder: "Szukaj...",
+    editShortcut: "Edytuj skrót",
+    namePlaceholder: "Nazwa",
+    urlPlaceholder: "Adres URL (np. https://example.com)",
+    cancel: "Anuluj",
+    save: "Zapisz",
+    confirmDelete: "Usunąć skrót?",
+    invalidUrl: "Nieprawidłowy adres URL.",
+    urlPrompt: "Adres URL:",
+    namePrompt: "Nazwa skrótu (ENTER = domyślna):",
+    fontColor: "Kolor czcionki"
+  },
+  en: {
+    addShortcut: "＋ Add Shortcut",
+    customizeBtn: "Customize",
+    setWallpaper: "Set Wallpaper",
+    theme: "Theme",
+    viewBtn: "View",
+    focusMode: "Focus Mode",
+    exitFocus: "Exit Focus",
+    blur: "Blur",
+    brightness: "Brightness",
+    language: "Language: EN",
+    searchPlaceholder: "Search...",
+    editShortcut: "Edit Shortcut",
+    namePlaceholder: "Name",
+    urlPlaceholder: "URL Address (e.g. https://example.com)",
+    cancel: "Cancel",
+    save: "Save",
+    confirmDelete: "Delete shortcut?",
+    invalidUrl: "Invalid URL.",
+    urlPrompt: "URL Address:",
+    namePrompt: "Shortcut Name (ENTER = default):",
+    fontColor: "Font Color"
+  }
+};
+
+let currentLang = localStorage.getItem("language") || "pl";
+
+function updateLanguage() {
+  const t = translations[currentLang];
+
+  // Update elements with data-i18n
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    if (t[key]) {
+      // For inputs with button role or just text content
+      if (key === "focusMode" && isFocusMode) {
+          el.textContent = t["exitFocus"];
+      } else {
+          el.textContent = t[key];
+      }
+    }
+  });
+
+  // Update placeholders
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    if (t[key]) el.placeholder = t[key];
+  });
+
+  // Update search input specifically if not covered above
+  if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+}
+
+const langToggle = document.getElementById("langToggle");
+if (langToggle) {
+    langToggle.addEventListener("click", () => {
+        currentLang = (currentLang === "pl") ? "en" : "pl";
+        localStorage.setItem("language", currentLang);
+        updateLanguage();
+    });
+}
+// Initial apply
+updateLanguage();
+
+
+// ====== MENUS (Customize / View) ======
+function setupMenus() {
+  const toggles = document.querySelectorAll(".menu-toggle");
+
+  toggles.forEach(toggle => {
+    const menu = toggle.nextElementSibling;
+    if (!menu || !menu.classList.contains("menu-content")) return;
+
+    // Click handler
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Close others
+      document.querySelectorAll(".menu-content").forEach(m => {
+        if (m !== menu) m.classList.add("hidden");
+      });
+      // Ensure open (fix conflict with hover)
+      menu.classList.remove("hidden");
+    });
+
+    // Hover handler (mouse enter on button)
+    toggle.addEventListener("mouseenter", () => {
+      // Close others
+      document.querySelectorAll(".menu-content").forEach(m => {
+        if (m !== menu) m.classList.add("hidden");
+      });
+      menu.classList.remove("hidden");
+    });
+
+    // Leave handler (mouse leave button) - verify if entering menu
+    toggle.addEventListener("mouseleave", (e) => {
+       // We need a small delay or check if moving to menu
+       setTimeout(() => {
+         if (!menu.matches(":hover") && !toggle.matches(":hover")) {
+           menu.classList.add("hidden");
+         }
+       }, 100);
+    });
+
+    // Leave handler for menu
+    menu.addEventListener("mouseleave", () => {
+      setTimeout(() => {
+         if (!menu.matches(":hover") && !toggle.matches(":hover")) {
+           menu.classList.add("hidden");
+         }
+       }, 100);
+    });
+  });
+
+  // Close menus when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".menu-content") && !e.target.closest(".menu-toggle")) {
+      document.querySelectorAll(".menu-content").forEach(m => m.classList.add("hidden"));
+    }
+  });
+}
+setupMenus();
+
+
 
 // ====== WYSZUKIWARKA ======
 
@@ -122,7 +303,14 @@ function renderShortcuts() {
 
     a.addEventListener("contextmenu", (ev) => {
       ev.preventDefault();
-      const ok = confirm(`Usunąć skrót "${s.name}"?`);
+      // If Control key is pressed, edit instead of delete
+      if (ev.ctrlKey) {
+          openEditModal(i);
+          return;
+      }
+
+      const t = translations[currentLang];
+      const ok = confirm(t ? t.confirmDelete : `Usunąć skrót "${s.name}"?`);
       if (ok) {
         shortcuts.splice(i,1);
         localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
@@ -281,10 +469,37 @@ shortcutsContainer.addEventListener('drop', (ev) => {
 
 
 
-// ====== MOTYW (tylko przyciski i tekst) ======
+// ====== MOTYW & KOLOR CZCIONKI ======
 document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("themeToggle");
-  if (!btn) return;
+  const colorInput = document.getElementById("fontColorInput");
+  const colorPicker = document.getElementById("fontColorPicker");
+
+  // Helper: Hex to RGBA
+  function hexToRgba(hex, alpha) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+    const bigint = parseInt(hex, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  function applyCustomColor(hex) {
+    if (!hex || !/^#([0-9A-F]{3}){1,2}$/i.test(hex)) return;
+
+    // Apply text color
+    document.documentElement.style.setProperty("--text", hex);
+    // Apply muted color (same RGB, 0.65 opacity)
+    document.documentElement.style.setProperty("--muted", hexToRgba(hex, 0.65));
+
+    // Update inputs
+    if (colorInput) colorInput.value = hex;
+    if (colorPicker) colorPicker.value = hex;
+
+    localStorage.setItem("customFontColor", hex);
+  }
 
   function setTheme(mode) {
     if (mode === "light") {
@@ -299,17 +514,50 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("theme", mode);
   }
 
-  let current = localStorage.getItem("theme") || "dark";
-  setTheme(current);
+  // Init Theme
+  let currentTheme = localStorage.getItem("theme") || "dark";
 
-  btn.addEventListener("click", () => {
-    current = (current === "dark") ? "light" : "dark";
-    setTheme(current);
-  });
+  // Check for saved custom color
+  const savedColor = localStorage.getItem("customFontColor");
+  if (savedColor) {
+    // If custom color exists, apply it (overrides theme text colors)
+    setTheme(currentTheme); // Set accent colors first
+    applyCustomColor(savedColor);
+  } else {
+    setTheme(currentTheme);
+  }
+
+  // Theme Toggle Logic
+  if (btn) {
+    btn.addEventListener("click", () => {
+        // Reset custom color
+        localStorage.removeItem("customFontColor");
+        if (colorInput) colorInput.value = "";
+
+        // Toggle theme
+        currentTheme = (currentTheme === "dark") ? "light" : "dark";
+        setTheme(currentTheme);
+    });
+  }
+
+  // Custom Color Input Logic
+  if (colorInput && colorPicker) {
+      colorInput.addEventListener("input", (e) => {
+          let val = e.target.value.trim();
+          if (val && !val.startsWith("#")) val = "#" + val;
+          if (/^#([0-9A-F]{3}){1,2}$/i.test(val)) {
+              applyCustomColor(val);
+          }
+      });
+
+      colorPicker.addEventListener("input", (e) => {
+          applyCustomColor(e.target.value);
+      });
+  }
 });
 
 
-// --- Edit shortcut functionality ---
+// --- Edit shortcut functionality (Clean & Consolidated) ---
 let editingShortcutIndex = null;
 
 function openEditModal(index) {
@@ -330,217 +578,88 @@ function openEditModal(index) {
   urlInput.select();
 }
 
-// Attach save/cancel handlers for modal using editingShortcutIndex and editShortcutModal
-(function(){
-  const modal = document.getElementById('editShortcutModal');
-  const saveBtn = document.getElementById('saveEdit');
-  const cancelBtn = document.getElementById('cancelEdit');
-  const nameInput = document.getElementById('editName');
-  const urlInput = document.getElementById('editUrl');
-
-  function closeModal() {
-    if (modal) { modal.classList.add('hidden'); modal.setAttribute('aria-hidden','true'); }
-    editingShortcutIndex = null;
-  }
-
-  if (saveBtn) {
-    saveBtn.addEventListener('click', function(){
-      try {
-        const idx = editingShortcutIndex;
-        if (idx === null || idx === undefined) { closeModal(); return; }
-        const shortcutsArr = JSON.parse(localStorage.getItem('shortcuts') || '[]');
-        if (!shortcutsArr[idx]) { closeModal(); return; }
-        const newName = (nameInput.value||'').trim() || shortcutsArr[idx].name;
-        let newUrl = (urlInput.value||'').trim();
-        if (!newUrl) { alert('Adres URL nie może być pusty.'); return; }
-        newUrl = normalizeUrl(newUrl);
-        const parsed = new URL(newUrl);
-        shortcutsArr[idx].name = newName;
-        shortcutsArr[idx].url = parsed.href;
-        shortcutsArr[idx].icon = `https://www.google.com/s2/favicons?domain=${parsed.hostname.replace(/^www\./,'')}&sz=128`;
-        localStorage.setItem('shortcuts', JSON.stringify(shortcutsArr));
-        renderShortcuts();
-      } catch (err) {
-        console.warn('Error saving edited shortcut', err);
-        alert('Nieprawidłowy adres URL.');
-      } finally {
-        closeModal();
-      }
-    });
-  }
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', function(){
-      closeModal();
-    });
-  }
-
-  // Close modal on Escape
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') closeModal();
-  });
-
-  // Click outside modal content closes
+function closeEditModal() {
+  const modal = document.getElementById("editShortcutModal");
   if (modal) {
-    modal.addEventListener('click', function(e){
-      if (e.target === modal) closeModal();
-    });
-  }
-})();
-
-
-
-// Safe attach save/cancel handlers (only if elements exist)
-(function attachEditModalHandlers() {
-  const saveBtn = document.getElementById("saveEdit");
-  const cancelBtn = document.getElementById("cancelEdit");
-  const modal = document.getElementById("editShortcutModal");
-  if (saveBtn) {
-    saveBtn.addEventListener("click", () => {
-      try {
-        const shortcutsArr = JSON.parse(localStorage.getItem("shortcuts") || "[]");
-        if (editingShortcutIndex !== null && shortcutsArr[editingShortcutIndex]) {
-          const nameVal = (document.getElementById("editName").value || "").trim() || shortcutsArr[editingShortcutIndex].name;
-          let urlVal = (document.getElementById("editUrl").value || "").trim();
-          if (!urlVal) { alert("Adres URL nie może być pusty."); return; }
-          urlVal = normalizeUrl(urlVal);
-          // validate URL
-          const parsed = new URL(urlVal);
-          shortcutsArr[editingShortcutIndex].name = nameVal;
-          shortcutsArr[editingShortcutIndex].url = parsed.href;
-          shortcutsArr[editingShortcutIndex].icon = `https://www.google.com/s2/favicons?domain=${parsed.hostname.replace(/^www\\./,'')}&sz=128`;
-          localStorage.setItem("shortcuts", JSON.stringify(shortcutsArr));
-          renderShortcuts();
-        }
-      } catch (err) {
-        console.warn("Błąd podczas zapisu edycji:", err);
-        alert("Nieprawidłowy adres URL.");
-      } finally {
-        if (modal) { modal.classList.add("hidden"); modal.setAttribute('aria-hidden','true'); }
-      }
-    });
-  }
-  if (cancelBtn) {
-    cancelBtn.addEventListener("click", () => {
-      if (modal) { modal.classList.add("hidden"); modal.setAttribute('aria-hidden','true'); }
-    });
-  }
-})();
-
-// Edit shortcut with Ctrl (or Cmd on mac) + left click on a shortcut element
-document.addEventListener("click", function(e) {
-  try {
-    // Only respond to primary (left) button clicks
-    if (typeof e.button !== 'undefined' && e.button !== 0) return;
-    // require ctrlKey (Windows/Linux) or metaKey (Mac)
-    if (!e.ctrlKey && !e.metaKey) return;
-    const shortcutEl = e.target && typeof e.target.closest === 'function' ? e.target.closest(".shortcut") : null;
-    if (!shortcutEl) return;
-    e.preventDefault();
-    const idx = shortcutEl.dataset.index;
-    if (idx === undefined || idx === null) return;
-    openEditModal(Number(idx));
-  } catch (err) {
-    console.warn("Error in ctrl/cmd+click edit handler", err);
-  }
-});
-
-
-
-
-
-
-
-
-
-// --- Edit modal handlers (final fix) ---
-document.addEventListener("DOMContentLoaded", () => {
-  const saveBtn = document.getElementById("saveEdit");
-  const cancelBtn = document.getElementById("cancelEdit");
-  const modal = document.getElementById("editShortcutModal");
-  if (!saveBtn || !cancelBtn || !modal) return;
-
-  saveBtn.addEventListener("click", () => {
-    if (editingShortcutIndex !== null && shortcuts[editingShortcutIndex]) {
-      const nameVal = document.getElementById("editName").value.trim() || shortcuts[editingShortcutIndex].name;
-      let urlVal = document.getElementById("editUrl").value.trim();
-      if (!/^https?:\/\//i.test(urlVal)) urlVal = "https://" + urlVal;
-      try {
-        const parsed = new URL(urlVal);
-        shortcuts[editingShortcutIndex].name = nameVal;
-        shortcuts[editingShortcutIndex].url = parsed.href;
-        shortcuts[editingShortcutIndex].icon = `https://www.google.com/s2/favicons?domain=${parsed.hostname.replace(/^www\./,'')}&sz=128`;
-        localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
-        renderShortcuts();
-      } catch (err) {
-        alert("Nieprawidłowy adres URL.");
-      }
-    }
-    modal.classList.add("hidden");
-  });
-
-  cancelBtn.addEventListener("click", () => {
-    modal.classList.add("hidden");
-  });
-
-  // Zamknij klikając w tło lub Escape
-  modal.addEventListener("click", (ev) => {
-    if (ev.target === modal) {
       modal.classList.add("hidden");
-    }
-  });
-  document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape") modal.classList.add("hidden");
-  });
-});
+      modal.setAttribute("aria-hidden", "true");
+  }
+  editingShortcutIndex = null;
+}
 
+function setupEditModalListeners() {
+    const modal = document.getElementById("editShortcutModal");
+    const saveBtn = document.getElementById("saveEdit");
+    const cancelBtn = document.getElementById("cancelEdit");
+    if (!modal || !saveBtn || !cancelBtn) return;
+
+    saveBtn.addEventListener("click", () => {
+        if (editingShortcutIndex === null) { closeEditModal(); return; }
+        if (!shortcuts[editingShortcutIndex]) { closeEditModal(); return; }
+
+        const nameVal = document.getElementById("editName").value.trim() || shortcuts[editingShortcutIndex].name;
+        let urlVal = document.getElementById("editUrl").value.trim();
+
+        if (!urlVal) { alert("Adres URL nie może być pusty."); return; }
+        if (!/^https?:\/\//i.test(urlVal)) urlVal = "https://" + urlVal;
+
+        try {
+            const parsed = new URL(urlVal);
+            shortcuts[editingShortcutIndex].name = nameVal;
+            shortcuts[editingShortcutIndex].url = parsed.href;
+            shortcuts[editingShortcutIndex].icon = `https://www.google.com/s2/favicons?domain=${parsed.hostname.replace(/^www\./,'')}&sz=128`;
+
+            localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
+            renderShortcuts();
+            closeEditModal();
+        } catch (err) {
+            alert("Nieprawidłowy adres URL.");
+        }
+    });
+
+    cancelBtn.addEventListener("click", closeEditModal);
+
+    // Close on click outside or Escape
+    modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeEditModal();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !modal.classList.contains("hidden")) closeEditModal();
+    });
+}
+
+// Call setup once DOM is ready
+document.addEventListener("DOMContentLoaded", setupEditModalListeners);
 
 
 function setupDragAndDrop() {
   if (!addShortcutBtn || !shortcutsContainer) return;
-  function extractUrlFromDataTransfer(dt) {
-    try {
-      if (!dt) return null;
-      if (dt.types && Array.from(dt.types).includes('text/uri-list')) {
-        const v = dt.getData('text/uri-list').split('\n')[0];
-        if (v) return v.trim();
-      }
-      const plain = dt.getData('text/plain');
-      if (plain && /https?:\/\//.test(plain)) return plain.trim();
-      const html = dt.getData('text/html');
-      if (html) {
-        const hrefMatch = html.match(/href=["']?([^"' >]+)/i);
-        if (hrefMatch) return hrefMatch[1];
-        const aMatch = html.match(/<a[^>]+href=["']?([^"' >]+)/i);
-        if (aMatch) return aMatch[1];
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-  function addShortcutFromUrl(rawUrl) {
-    if (!rawUrl) return;
-    let url = rawUrl.trim();
-    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-    try {
-      const parsed = new URL(url);
-      const host = parsed.hostname.replace(/^www\./, "");
-      const defaultName = host;
-      const name = defaultName;
-      const favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
-      shortcuts.push({ name, url: parsed.href, icon: favicon });
-      localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
-      renderShortcuts();
-    } catch (err) {
-      console.warn("Nieudane dodanie skrótu z DnD:", rawUrl);
-    }
-  }
-  
-  
-
-  
-  
+  // Drag functions are already defined globally or inside this scope above,
+  // but to avoid duplication we just ensure listeners are attached in the main flow.
+  // The earlier code block already attached them.
 }
 
 
-document.addEventListener('DOMContentLoaded', setupDragAndDrop);
+// ====== TRYB SKUPIENIA (FOCUS MODE) LOGIC ======
+function toggleFocusMode() {
+    isFocusMode = !isFocusMode;
+    applyFocusMode();
+    localStorage.setItem("focusMode", isFocusMode);
+    // Update text if language is set
+    updateLanguage();
+}
+
+function applyFocusMode() {
+    if (isFocusMode) {
+        document.body.classList.add("focus-mode");
+    } else {
+        document.body.classList.remove("focus-mode");
+    }
+}
+
+// Init focus mode on load
+if (focusModeBtn) {
+    focusModeBtn.addEventListener("click", toggleFocusMode);
+}
+// Apply initial state
+applyFocusMode();

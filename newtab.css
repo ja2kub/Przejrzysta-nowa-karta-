@@ -70,11 +70,16 @@ html,body{
   padding: 18px 24px;
   border-radius: 999px;
   background: var(--glass);
-  border: none;
+  border: 1px solid rgba(255,255,255,0.04);
   color: var(--text);
   font-size:1.25rem;
   outline: none;
   box-shadow: var(--small-shadow);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+#searchInput:hover, #searchInput:focus {
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%);
+  border-color: rgba(255,255,255,0.1);
 }
 #searchInput::placeholder{ color: var(--muted); }
 
@@ -111,11 +116,17 @@ html,body{
   height:64px;
   border-radius:16px;
   background: var(--glass);
+  border: 1px solid rgba(255,255,255,0.04);
   display:flex;
   align-items:center;
   justify-content:center;
   box-shadow: var(--small-shadow);
   overflow:hidden;
+  transition: all 0.3s ease;
+}
+.shortcut:hover .shortcut-icon {
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+  transform: translateY(-2px);
 }
 .shortcut-icon img{
   width:36px;
@@ -128,42 +139,166 @@ html,body{
 .add-shortcut{
   margin-top:22px;
   padding:10px 18px;
-  border-radius:20px;
+  border-radius:999px;
   background:var(--glass);
-  border:none;
+  border: 1px solid rgba(255,255,255,0.04);
   color:var(--text);
   cursor:pointer;
   box-shadow: var(--small-shadow);
   font-size:0.95rem;
+  transition: all 0.3s ease;
+}
+.add-shortcut:hover{
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
 }
 
 .bottom-left-controls {
   position: fixed;
   left: 20px;
   bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 2;
-  align-items: flex-start;
+  z-index: 9999;
 }
 
-.bottom-left-controls .control-btn {
-  min-width: 160px;              /* identyczna długość */
-  padding: 8px 14px;
+.bottom-right-controls {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+}
+
+/* Menu Toggle Button Style */
+.menu-toggle {
+  min-width: 140px;
+  padding: 10px 18px;
   border-radius: 999px;
   background: var(--glass);
   border: 1px solid rgba(255,255,255,0.04);
   color: var(--text);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   box-shadow: var(--small-shadow);
   text-align: center;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
+  z-index: 10000;
+  position: relative;
+}
+.menu-toggle:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
 }
 
-.bottom-left-controls .control-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+/* Menu Content (Popup) */
+.menu-content {
+  position: absolute;
+  bottom: 55px; /* above the toggle button */
+  background: var(--glass-strong);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 12px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+
+  /* Start state: hidden */
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Left menu aligns left, Right menu aligns right */
+.bottom-left-controls .menu-content { left: 0; }
+.bottom-right-controls .menu-content { right: 0; }
+
+/* Active state: visible */
+/* Use specificity or !important if needed, but the JS removes .hidden class */
+.menu-content:not(.hidden) {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  display: flex !important;
+}
+
+/* Menu Items */
+.menu-item {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.menu-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.menu-item-static {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.menu-item-static span { margin-bottom: 2px; }
+
+/* Sliders inside menu */
+.menu-item-static input[type="range"] {
+  width: 100%;
+  cursor: pointer;
+}
+
+.color-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+#fontColorInput {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    padding: 6px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    text-transform: uppercase;
+}
+#fontColorInput:focus {
+    border-color: var(--accent);
+}
+
+#fontColorPicker {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+#fontColorPicker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+#fontColorPicker::-webkit-color-swatch {
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+}
+
+.control-btn { /* fallback for other buttons */
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.04);
 }
 
 
@@ -203,9 +338,6 @@ html,body{
 
 
 .theme-btn {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
   padding: 8px 18px;
   border-radius: var(--radius-md);
   border: none;
@@ -215,12 +347,27 @@ html,body{
   background: var(--glass-strong);
   color: var(--text);
   box-shadow: var(--small-shadow);
-  transition: background 0.3s ease, color 0.3s ease;
-  z-index: 9999;
+  transition: all 0.3s ease;
 }
 .theme-btn:hover {
   background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, #ff6666 100%);
   color: #fff;
+}
+
+/* Focus Mode active state */
+body.focus-mode .search-box,
+body.focus-mode .shortcuts,
+body.focus-mode #addShortcutBtn,
+body.focus-mode .bottom-left-controls,
+body.focus-mode #themeToggle {
+    display: none !important;
+}
+
+/* Ensure Focus Mode button stays visible and indicates active state */
+body.focus-mode #focusModeBtn {
+    background: var(--accent);
+    color: white;
 }
 
 
@@ -257,93 +404,81 @@ html,body{
 }
 .modal.hidden { display: none; }
 .modal-content {
-  background: var(--bg);
+  background: var(--glass-strong);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   color: var(--text);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  padding: 24px;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.1);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-width: 250px;
+  gap: 14px;
+  min-width: 320px;
+  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-
-/* Modal stylizacja spójna z resztą UI */
-#editModal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  display: none;
-  z-index: 1000;
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-#editModal input {
-  width: 100%;
-  padding: 8px;
-  margin: 8px 0;
-  border-radius: 8px;
-  border: none;
-  outline: none;
-  background-color: var(--button-bg);
-  color: var(--text-color);
-}
-
-#editModal .modal-buttons {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
-}
-
-#editModal .modal-buttons button {
-  flex: 1;
-  margin: 0 5px;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  background-color: var(--button-bg);
-  color: var(--text-color);
-  transition: background-color 0.2s;
-}
-
-#editModal .modal-buttons button:hover {
-  background-color: var(--button-hover);
+.modal-title {
+  margin: 0 0 4px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
 }
 
 /* Ensure modal buttons match control-btn appearance */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: stretch;
+  margin-top: 8px;
+}
 .modal .control-btn {
-  min-width: 120px;
-  padding: 8px 14px;
+  flex: 1;
+  padding: 10px 14px;
   border-radius: 999px;
   background: var(--glass);
   border: 1px solid rgba(255,255,255,0.04);
   color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 .modal .control-btn:hover {
-  background: rgba(255,255,255,0.05);
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+  transform: translateY(-1px);
+}
+/* Save button accent */
+#saveEdit {
+  background: var(--glass-strong);
+  border-color: rgba(255,255,255,0.1);
+}
+#saveEdit:hover {
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(255,51,51,0.6) 100%);
+  color: white;
+  border-color: transparent;
 }
 
 
 /* Edit modal input styling to match theme */
 #editShortcutModal input[type="text"] {
   width: 100%;
-  padding: 8px 12px;
-  margin: 6px 0;
-  border-radius: 8px;
-  border: 1px solid var(--muted);
-  background: rgba(0,0,0,0.4);
+  padding: 12px 18px;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--glass);
   color: var(--text);
-  font-size: 14px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
 }
 #editShortcutModal input[type="text"]:focus {
   outline: none;
-  border-color: var(--accent);
-  background: rgba(0,0,0,0.6);
+  border-color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.1);
 }
