@@ -164,6 +164,33 @@ html,body{
 
 .bottom-left-controls .control-btn:hover {
   background: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--glass);
+    padding: 6px 12px;
+    border-radius: 999px;
+    color: var(--text);
+    font-size: 0.85rem;
+    box-shadow: var(--small-shadow);
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.slider-container input[type="range"] {
+    width: 80px;
+    cursor: pointer;
+}
+
+.bottom-right-controls {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 9999;
 }
 
 
@@ -203,9 +230,6 @@ html,body{
 
 
 .theme-btn {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
   padding: 8px 18px;
   border-radius: var(--radius-md);
   border: none;
@@ -215,12 +239,27 @@ html,body{
   background: var(--glass-strong);
   color: var(--text);
   box-shadow: var(--small-shadow);
-  transition: background 0.3s ease, color 0.3s ease;
-  z-index: 9999;
+  transition: all 0.3s ease;
 }
 .theme-btn:hover {
   background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, #ff6666 100%);
   color: #fff;
+}
+
+/* Focus Mode active state */
+body.focus-mode .search-box,
+body.focus-mode .shortcuts,
+body.focus-mode #addShortcutBtn,
+body.focus-mode .bottom-left-controls,
+body.focus-mode #themeToggle {
+    display: none !important;
+}
+
+/* Ensure Focus Mode button stays visible and indicates active state */
+body.focus-mode #focusModeBtn {
+    background: var(--accent);
+    color: white;
 }
 
 

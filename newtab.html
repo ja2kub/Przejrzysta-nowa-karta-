@@ -31,11 +31,23 @@
   <div class="bottom-left-controls" id="bottomLeft">
     <label for="bgUpload" class="control-btn" title="Ustaw tapetę">Ustaw tapetę</label>
     <input id="bgUpload" accept="image/*" type="file" hidden />
+
+    <div class="slider-container" title="Rozmycie tła">
+        <span>Blur</span>
+        <input type="range" id="blurSlider" min="0" max="20" value="0">
+    </div>
+    <div class="slider-container" title="Jasność tła">
+        <span>Jasność</span>
+        <input type="range" id="brightnessSlider" min="20" max="100" value="100">
+    </div>
   </div>
 
   <!-- popup wyboru wyszukiwarki -->
+  <div class="bottom-right-controls">
+      <button id="focusModeBtn" class="theme-btn">Tryb skupienia</button>
+      <button id="themeToggle" class="theme-btn">Motyw</button>
+  </div>
   <script src="newtab.js"></script>
-  <button id="themeToggle" class="theme-btn">Motyw</button>
 
 
 <div id="editShortcutModal" class="modal hidden" aria-hidden="true">

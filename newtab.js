@@ -68,6 +68,63 @@ bgInput.addEventListener("change", (e) => {
   reader.readAsDataURL(file);
 });
 
+
+// ====== BLUR / BRIGHTNESS SLIDERS ======
+const blurSlider = document.getElementById("blurSlider");
+const brightnessSlider = document.getElementById("brightnessSlider");
+
+function updateBgFilters() {
+    const blurVal = blurSlider.value;
+    const brightnessVal = brightnessSlider.value;
+    // Apply filters to bgLayer
+    // Brightness is percent, blur is px
+    // CSS filter: brightness(%) blur(px)
+    bgLayer.style.filter = `brightness(${brightnessVal}%) blur(${blurVal}px)`;
+
+    localStorage.setItem("bgBlur", blurVal);
+    localStorage.setItem("bgBrightness", brightnessVal);
+}
+
+// Init values from localStorage or default
+const savedBlur = localStorage.getItem("bgBlur") || "0";
+const savedBrightness = localStorage.getItem("bgBrightness") || "100";
+
+if (blurSlider && brightnessSlider) {
+    blurSlider.value = savedBlur;
+    brightnessSlider.value = savedBrightness;
+    updateBgFilters();
+
+    blurSlider.addEventListener("input", updateBgFilters);
+    brightnessSlider.addEventListener("input", updateBgFilters);
+}
+
+// ====== TRYB SKUPIENIA (FOCUS MODE) ======
+const focusModeBtn = document.getElementById("focusModeBtn");
+let isFocusMode = localStorage.getItem("focusMode") === "true";
+
+function toggleFocusMode() {
+    isFocusMode = !isFocusMode;
+    applyFocusMode();
+    localStorage.setItem("focusMode", isFocusMode);
+}
+
+function applyFocusMode() {
+    if (isFocusMode) {
+        document.body.classList.add("focus-mode");
+        if (focusModeBtn) focusModeBtn.textContent = "Wyłącz skupienie";
+    } else {
+        document.body.classList.remove("focus-mode");
+        if (focusModeBtn) focusModeBtn.textContent = "Tryb skupienia";
+    }
+}
+
+// Init focus mode on load
+if (focusModeBtn) {
+    focusModeBtn.addEventListener("click", toggleFocusMode);
+}
+// Apply initial state
+applyFocusMode();
+
 // ====== WYSZUKIWARKA ======
 
 // (Usunięto: interfejs wyboru wyszukiwarki — używana będzie domyślna przeglądarki)
