@@ -24,9 +24,11 @@ const searchForm = document.getElementById("searchForm");
 const searchInput = document.getElementById("searchInput");
 const shortcutsContainer = document.getElementById("shortcuts");
 const addShortcutBtn = document.getElementById("addShortcutBtn");
+const focusModeBtn = document.getElementById("focusModeBtn");
 
 let currentEngineKey = DEFAULT_ENGINE_KEY;
 let shortcuts = JSON.parse(localStorage.getItem("shortcuts") || "[]");
+let isFocusMode = localStorage.getItem("focusMode") === "true";
 
 // ====== ZEGAR ======
 function updateClock() {
@@ -191,19 +193,46 @@ function setupMenus() {
   const toggles = document.querySelectorAll(".menu-toggle");
 
   toggles.forEach(toggle => {
-    toggle.addEventListener("click", (e) => {
-      e.stopPropagation(); // prevent document click from closing immediately
+    const menu = toggle.nextElementSibling;
+    if (!menu || !menu.classList.contains("menu-content")) return;
 
-      // Find the corresponding menu (next sibling usually, but let's be safe)
-      // Based on HTML structure: button + div.menu-content
-      const menu = toggle.nextElementSibling;
-      if (menu && menu.classList.contains("menu-content")) {
-        // Close others
-        document.querySelectorAll(".menu-content").forEach(m => {
-          if (m !== menu) m.classList.add("hidden");
-        });
-        menu.classList.toggle("hidden");
-      }
+    // Click handler
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Close others
+      document.querySelectorAll(".menu-content").forEach(m => {
+        if (m !== menu) m.classList.add("hidden");
+      });
+      // Ensure open (fix conflict with hover)
+      menu.classList.remove("hidden");
+    });
+
+    // Hover handler (mouse enter on button)
+    toggle.addEventListener("mouseenter", () => {
+      // Close others
+      document.querySelectorAll(".menu-content").forEach(m => {
+        if (m !== menu) m.classList.add("hidden");
+      });
+      menu.classList.remove("hidden");
+    });
+
+    // Leave handler (mouse leave button) - verify if entering menu
+    toggle.addEventListener("mouseleave", (e) => {
+       // We need a small delay or check if moving to menu
+       setTimeout(() => {
+         if (!menu.matches(":hover") && !toggle.matches(":hover")) {
+           menu.classList.add("hidden");
+         }
+       }, 100);
+    });
+
+    // Leave handler for menu
+    menu.addEventListener("mouseleave", () => {
+      setTimeout(() => {
+         if (!menu.matches(":hover") && !toggle.matches(":hover")) {
+           menu.classList.add("hidden");
+         }
+       }, 100);
     });
   });
 
@@ -217,35 +246,6 @@ function setupMenus() {
 setupMenus();
 
 
-// ====== TRYB SKUPIENIA (FOCUS MODE) ======
-const focusModeBtn = document.getElementById("focusModeBtn");
-let isFocusMode = localStorage.getItem("focusMode") === "true";
-
-function toggleFocusMode() {
-    isFocusMode = !isFocusMode;
-    applyFocusMode();
-    localStorage.setItem("focusMode", isFocusMode);
-}
-
-function applyFocusMode() {
-    const t = translations[currentLang];
-    const textSpan = focusModeBtn ? focusModeBtn.querySelector("span") : null;
-
-    if (isFocusMode) {
-        document.body.classList.add("focus-mode");
-        if (textSpan) textSpan.textContent = t.exitFocus;
-    } else {
-        document.body.classList.remove("focus-mode");
-        if (textSpan) textSpan.textContent = t.focusMode;
-    }
-}
-
-// Init focus mode on load
-if (focusModeBtn) {
-    focusModeBtn.addEventListener("click", toggleFocusMode);
-}
-// Apply initial state
-applyFocusMode();
 
 // ====== WYSZUKIWARKA ======
 
@@ -723,3 +723,26 @@ function setupDragAndDrop() {
 
 
 document.addEventListener('DOMContentLoaded', setupDragAndDrop);
+// ====== TRYB SKUPIENIA (FOCUS MODE) LOGIC ======
+function toggleFocusMode() {
+    isFocusMode = !isFocusMode;
+    applyFocusMode();
+    localStorage.setItem("focusMode", isFocusMode);
+    // Update text if language is set
+    updateLanguage();
+}
+
+function applyFocusMode() {
+    if (isFocusMode) {
+        document.body.classList.add("focus-mode");
+    } else {
+        document.body.classList.remove("focus-mode");
+    }
+}
+
+// Init focus mode on load
+if (focusModeBtn) {
+    focusModeBtn.addEventListener("click", toggleFocusMode);
+}
+// Apply initial state
+applyFocusMode();
