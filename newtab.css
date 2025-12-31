@@ -657,3 +657,6 @@ body.focus-mode .date-widget {
   color: var(--text);
   text-shadow: 0 2px 10px rgba(0,0,0,0.2);
 }
+
+/* Generic utility */
+.hidden { display: none !important; }

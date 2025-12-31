@@ -60,7 +60,14 @@ function showModal({ title = "", message = "", input = false, defaultValue = "",
     return new Promise((resolve) => {
         if (!cModal) return resolve(null);
 
-        cModalTitle.textContent = title;
+        if (title) {
+            cModalTitle.textContent = title;
+            cModalTitle.classList.remove("hidden");
+        } else {
+            cModalTitle.textContent = "";
+            cModalTitle.classList.add("hidden");
+        }
+
         cModalMessage.textContent = message;
 
         if (input) {
@@ -124,15 +131,17 @@ function showModal({ title = "", message = "", input = false, defaultValue = "",
 }
 
 async function customAlert(msg) {
-    return showModal({ title: "Info", message: msg, hideCancel: true });
+    const t = translations[currentLang];
+    return showModal({ title: (t ? t.modalAlertTitle : "Info"), message: msg, hideCancel: true });
 }
 
 async function customConfirm(msg) {
-    return showModal({ title: "Potwierdź", message: msg, confirmText: "Tak", cancelText: "Nie" });
+    const t = translations[currentLang];
+    return showModal({ title: (t ? t.modalConfirmTitle : "Confirm"), message: msg, confirmText: "Tak", cancelText: "Nie" });
 }
 
-async function customPrompt(msg, def = "") {
-    return showModal({ title: "Wprowadź dane", message: msg, input: true, defaultValue: def, confirmText: "OK", cancelText: "Anuluj" });
+async function customPrompt(msg, def = "", title = "") {
+    return showModal({ title: title, message: msg, input: true, defaultValue: def, confirmText: "OK", cancelText: "Anuluj" });
 }
 
 // ====== ZEGAR ======
@@ -226,7 +235,9 @@ const translations = {
     weather: "Pogoda",
     date: "Data",
     humidity: "Wilgotność",
-    wind: "Wiatr"
+    wind: "Wiatr",
+    modalConfirmTitle: "Potwierdź",
+    modalAlertTitle: "Info"
   },
   en: {
     addShortcut: "＋ Add Shortcut",
@@ -253,7 +264,9 @@ const translations = {
     weather: "Weather",
     date: "Date",
     humidity: "Humidity",
-    wind: "Wind"
+    wind: "Wind",
+    modalConfirmTitle: "Confirm",
+    modalAlertTitle: "Info"
   }
 };
 
