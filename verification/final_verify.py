@@ -11,14 +11,15 @@ def run(playwright):
     print("Clicking Add Shortcut")
     page.click("#addShortcutBtn")
 
-    # Wait
+    # Wait for selector explicitly
     try:
-        page.wait_for_selector("#customModal:not(.hidden)", timeout=3000)
+        page.wait_for_selector("#customModal", state="visible", timeout=3000)
         print("Modal visible!")
     except:
-        print("Wait failed")
+        print("Modal check failed")
 
-    page.screenshot(path="verification/final_check.png")
+    page.screenshot(path="verification/custom_prompt_fixed.png")
+
     browser.close()
 
 with sync_playwright() as playwright:
