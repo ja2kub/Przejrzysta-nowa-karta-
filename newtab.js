@@ -1,19 +1,5 @@
 
-// ====== CUSTOM MODAL UTILS ======
-const cModal = document.getElementById("customModal");
-const cModalTitle = document.getElementById("cModalTitle");
-const cModalMessage = document.getElementById("cModalMessage");
-const cModalInput = document.getElementById("cModalInput");
-const cModalCancel = document.getElementById("cModalCancel");
-const cModalConfirm = document.getElementById("cModalConfirm");
-
-
-// ====== CUSTOM MODAL UTILS ======
-
-
-// ====== CUSTOM MODAL UTILS ======
-
-
+// ====== UTILS & CONFIG ======
 function normalizeUrl(url) {
     if (!/^https?:\/\//i.test(url)) {
         return "https://" + url;
@@ -21,7 +7,6 @@ function normalizeUrl(url) {
     return url;
 }
 
-// ====== KONFIG ======
 const searchEngines = {
   google: { name: "Google", base: "https://www.google.com/search?q=", domain: "google.com" },
   duck:   { name: "DuckDuckGo", base: "https://duckduckgo.com/?q=", domain: "duckduckgo.com" },
@@ -31,7 +16,7 @@ const searchEngines = {
 
 const DEFAULT_ENGINE_KEY = localStorage.getItem("searchEngine") || "google";
 
-// ====== ELEMENTY ======
+// ====== DOM ELEMENTS ======
 const clockEl = document.getElementById("clock");
 const bgInput = document.getElementById("bgUpload");
 const bgLayer = document.getElementById("bgLayer");
@@ -41,9 +26,114 @@ const shortcutsContainer = document.getElementById("shortcuts");
 const addShortcutBtn = document.getElementById("addShortcutBtn");
 const focusModeBtn = document.getElementById("focusModeBtn");
 
+// Modal Elements
+const cModal = document.getElementById("customModal");
+const cModalTitle = document.getElementById("cModalTitle");
+const cModalMessage = document.getElementById("cModalMessage");
+const cModalInput = document.getElementById("cModalInput");
+const cModalCancel = document.getElementById("cModalCancel");
+const cModalConfirm = document.getElementById("cModalConfirm");
+
+// Weather Elements
+const weatherWidget = document.getElementById("weatherWidget");
+const weatherToggle = document.getElementById("weatherToggle");
+const weatherIcon = document.getElementById("weatherIcon");
+const weatherTemp = document.getElementById("weatherTemp");
+const weatherDesc = document.getElementById("weatherDesc");
+const weatherHumidity = document.getElementById("weatherHumidity");
+const weatherWind = document.getElementById("weatherWind");
+
+// Date Elements
+const dateWidget = document.getElementById("dateWidget");
+const dateToggle = document.getElementById("dateToggle");
+
+// ====== STATE ======
 let currentEngineKey = DEFAULT_ENGINE_KEY;
 let shortcuts = JSON.parse(localStorage.getItem("shortcuts") || "[]");
 let isFocusMode = localStorage.getItem("focusMode") === "true";
+let weatherEnabled = localStorage.getItem("weatherEnabled") === "true";
+let weatherApiKey = localStorage.getItem("weatherApiKey") || "";
+let dateEnabled = localStorage.getItem("dateEnabled") === "true";
+
+// ====== MODAL LOGIC ======
+function showModal({ title = "", message = "", input = false, defaultValue = "", confirmText = "OK", cancelText = "Anuluj", hideCancel = false }) {
+    return new Promise((resolve) => {
+        if (!cModal) return resolve(null);
+
+        cModalTitle.textContent = title;
+        cModalMessage.textContent = message;
+
+        if (input) {
+            cModalInput.value = defaultValue;
+            cModalInput.classList.remove("hidden");
+        } else {
+            cModalInput.classList.add("hidden");
+        }
+
+        cModalConfirm.textContent = confirmText;
+        cModalCancel.textContent = cancelText;
+
+        cModalCancel.style.display = hideCancel ? "none" : "";
+
+        cModal.classList.remove("hidden");
+        cModal.setAttribute("aria-hidden", "false");
+        cModal.style.display = "flex"; // Force flex display
+
+        if (input) {
+            setTimeout(() => { cModalInput.focus(); cModalInput.select(); }, 50);
+        } else {
+            cModalConfirm.focus();
+        }
+
+        const close = (val) => {
+            cleanup();
+            cModal.classList.add("hidden");
+            cModal.setAttribute("aria-hidden", "true");
+            cModal.style.display = ""; // Reset to default (none via css class)
+            resolve(val);
+        };
+
+        const onConfirm = () => {
+            if (input) close(cModalInput.value);
+            else close(true);
+        };
+        const onCancel = () => {
+            close(input ? null : false);
+        };
+        const onKey = (e) => {
+            if (e.key === "Enter") onConfirm();
+            if (e.key === "Escape") onCancel();
+        };
+
+        cModalConfirm.onclick = onConfirm;
+        cModalCancel.onclick = onCancel;
+        cModalInput.onkeydown = onKey;
+
+        const globalKey = (e) => {
+             if (e.key === "Escape") onCancel();
+        };
+        document.addEventListener("keydown", globalKey);
+
+        function cleanup() {
+            cModalConfirm.onclick = null;
+            cModalCancel.onclick = null;
+            cModalInput.onkeydown = null;
+            document.removeEventListener("keydown", globalKey);
+        }
+    });
+}
+
+async function customAlert(msg) {
+    return showModal({ title: "Info", message: msg, hideCancel: true });
+}
+
+async function customConfirm(msg) {
+    return showModal({ title: "Potwierdź", message: msg, confirmText: "Tak", cancelText: "Nie" });
+}
+
+async function customPrompt(msg, def = "") {
+    return showModal({ title: "Wprowadź dane", message: msg, input: true, defaultValue: def, confirmText: "OK", cancelText: "Anuluj" });
+}
 
 // ====== ZEGAR ======
 function updateClock() {
@@ -93,24 +183,18 @@ const brightnessSlider = document.getElementById("brightnessSlider");
 function updateBgFilters() {
     const blurVal = blurSlider.value;
     const brightnessVal = brightnessSlider.value;
-    // Apply filters to bgLayer
-    // Brightness is percent, blur is px
-    // CSS filter: brightness(%) blur(px)
     bgLayer.style.filter = `brightness(${brightnessVal}%) blur(${blurVal}px)`;
-
     localStorage.setItem("bgBlur", blurVal);
     localStorage.setItem("bgBrightness", brightnessVal);
 }
 
-// Init values from localStorage or default
-const savedBlur = localStorage.getItem("bgBlur") || "0";
-const savedBrightness = localStorage.getItem("bgBrightness") || "100";
+const savedBlurVal = localStorage.getItem("bgBlur") || "0";
+const savedBrightnessVal = localStorage.getItem("bgBrightness") || "100";
 
 if (blurSlider && brightnessSlider) {
-    blurSlider.value = savedBlur;
-    brightnessSlider.value = savedBrightness;
+    blurSlider.value = savedBlurVal;
+    brightnessSlider.value = savedBrightnessVal;
     updateBgFilters();
-
     blurSlider.addEventListener("input", updateBgFilters);
     brightnessSlider.addEventListener("input", updateBgFilters);
 }
@@ -177,12 +261,9 @@ let currentLang = localStorage.getItem("language") || "pl";
 
 function updateLanguage() {
   const t = translations[currentLang];
-
-  // Update elements with data-i18n
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.dataset.i18n;
     if (t[key]) {
-      // For inputs with button role or just text content
       if (key === "focusMode" && isFocusMode) {
           el.textContent = t["exitFocus"];
       } else {
@@ -190,14 +271,10 @@ function updateLanguage() {
       }
     }
   });
-
-  // Update placeholders
   document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
     const key = el.dataset.i18nPlaceholder;
     if (t[key]) el.placeholder = t[key];
   });
-
-  // Update search input specifically if not covered above
   if (searchInput) searchInput.placeholder = t.searchPlaceholder;
 }
 
@@ -209,49 +286,34 @@ if (langToggle) {
         updateLanguage();
     });
 }
-// Initial apply
 updateLanguage();
 
-
-// ====== MENUS (Customize / View) ======
+// ====== MENUS ======
 function setupMenus() {
   const toggles = document.querySelectorAll(".menu-toggle");
-
   toggles.forEach(toggle => {
     const menu = toggle.nextElementSibling;
     if (!menu || !menu.classList.contains("menu-content")) return;
-
-    // Click handler
     toggle.addEventListener("click", (e) => {
       e.stopPropagation();
-      // Close others
       document.querySelectorAll(".menu-content").forEach(m => {
         if (m !== menu) m.classList.add("hidden");
       });
-      // Ensure open (fix conflict with hover)
       menu.classList.remove("hidden");
     });
-
-    // Hover handler (mouse enter on button)
     toggle.addEventListener("mouseenter", () => {
-      // Close others
       document.querySelectorAll(".menu-content").forEach(m => {
         if (m !== menu) m.classList.add("hidden");
       });
       menu.classList.remove("hidden");
     });
-
-    // Leave handler (mouse leave button) - verify if entering menu
     toggle.addEventListener("mouseleave", (e) => {
-       // We need a small delay or check if moving to menu
        setTimeout(() => {
          if (!menu.matches(":hover") && !toggle.matches(":hover")) {
            menu.classList.add("hidden");
          }
        }, 100);
     });
-
-    // Leave handler for menu
     menu.addEventListener("mouseleave", () => {
       setTimeout(() => {
          if (!menu.matches(":hover") && !toggle.matches(":hover")) {
@@ -260,8 +322,6 @@ function setupMenus() {
        }, 100);
     });
   });
-
-  // Close menus when clicking outside
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".menu-content") && !e.target.closest(".menu-toggle")) {
       document.querySelectorAll(".menu-content").forEach(m => m.classList.add("hidden"));
@@ -270,29 +330,22 @@ function setupMenus() {
 }
 setupMenus();
 
-
-
-// ====== WYSZUKIWARKA ======
-
-// (Usunięto: interfejs wyboru wyszukiwarki — używana będzie domyślna przeglądarki)
-
+// ====== SEARCH ======
 searchForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const q = searchInput.value.trim();
   if (!q) return;
-  // Użyj domyślnej wyszukiwarki przeglądarki przez chrome.search.query (jeśli dostępne)
   try {
     if (chrome && chrome.search && typeof chrome.search.query === "function") {
       chrome.search.query({ text: q });
       return;
     }
-  } catch (err) { /* fallback dalej */ }
-  // Fallback: użyj Google, jeśli chrome.search.query nie jest dostępne
+  } catch (err) { }
   const target = searchEngines.google.base + encodeURIComponent(q);
   window.location.href = target;
 });
 
-// ====== SKRÓTY ======
+// ====== SHORTCUTS ======
 function renderShortcuts() {
   shortcutsContainer.innerHTML = "";
   shortcuts.forEach((s, i) => {
@@ -316,22 +369,18 @@ function renderShortcuts() {
       iconWrap.appendChild(fallback);
     };
     iconWrap.appendChild(img);
-
     const nameDiv = document.createElement("div");
     nameDiv.className = "shortcut-name";
     nameDiv.textContent = s.name;
-
     a.appendChild(iconWrap);
     a.appendChild(nameDiv);
 
     a.addEventListener("contextmenu", async (ev) => {
       ev.preventDefault();
-      // If Control key is pressed, edit instead of delete
       if (ev.ctrlKey) {
           openEditModal(i);
           return;
       }
-
       const t = translations[currentLang];
       const ok = await customConfirm(t ? t.confirmDelete : `Usunąć skrót "${s.name}"?`);
       if (ok) {
@@ -340,15 +389,16 @@ function renderShortcuts() {
         renderShortcuts();
       }
     });
-
     shortcutsContainer.appendChild(a);
   });
 }
 renderShortcuts();
 
 addShortcutBtn.addEventListener("click", async () => {
+  console.log("Add Shortcut Clicked");
   const t = translations[currentLang];
   let url = await customPrompt(t ? t.urlPrompt : "Adres URL:");
+  console.log("URL entered:", url);
   if (!url) return;
   url = url.trim();
   if (!/^https?:\/\//i.test(url)) url = "https://" + url;
@@ -367,44 +417,13 @@ addShortcutBtn.addEventListener("click", async () => {
   }
 });
 
-// ====== DRAG & DROP: przeciągnij link na przycisk "Dodaj skrót" lub do sekcji skrótów ======
-function extractUrlFromDataTransfer(dt) {
-  try {
-    if (!dt) return null;
-    // text/uri-list (contains url)
-    if (dt.types && Array.from(dt.types).includes('text/uri-list')) {
-      const v = dt.getData('text/uri-list').split('\n')[0];
-      if (v) return v.trim();
-    }
-    // text/plain
-    const plain = dt.getData('text/plain');
-    if (plain && /https?:\/\//.test(plain)) return plain.trim();
-    // text/html -> try to extract href
-    const html = dt.getData('text/html');
-    if (html) {
-      const hrefMatch = html.match(/href=["']?([^"' >]+)/i);
-      if (hrefMatch) return hrefMatch[1];
-      // or anchor tag
-      const aMatch = html.match(/<a[^>]+href=["']?([^"' >]+)/i);
-      if (aMatch) return aMatch[1];
-    }
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-
-// Async extractor for dataTransfer (handles dt.items.getAsString fallbacks)
+// ====== DRAG & DROP ======
 function extractUrlFromDataTransferAsync(dt, cb) {
   try {
     if (!dt) return cb(null);
-    // Try common types first (synchronous)
     try { const v = dt.getData('text/uri-list'); if (v) return cb(v.split('\n')[0].trim()); } catch(e){}
     try { const v = dt.getData('URL'); if (v) return cb(v.trim()); } catch(e){}
     try { const v = dt.getData('text/plain'); if (v && /https?:\/\//.test(v)) return cb(v.trim()); } catch(e){}
-    try { const html = dt.getData('text/html'); if (html) { const hrefMatch = html.match(/href=["']?([^"' >]+)/i); if (hrefMatch) return cb(hrefMatch[1]); const aMatch = html.match(/<a[^>]+href=["']?([^"' >]+)/i); if (aMatch) return cb(aMatch[1]); } } catch(e){}
-    // If dt.items available, try getAsString on first string item
     if (dt.items && dt.items.length) {
       for (let i = 0; i < dt.items.length; i++) {
         const it = dt.items[i];
@@ -412,7 +431,6 @@ function extractUrlFromDataTransferAsync(dt, cb) {
           try {
             it.getAsString(function(s) {
               if (!s) return cb(null);
-              // if html, extract href
               const m = s.match(/href=["']?([^"' >]+)/i) || s.match(/<a[^>]+href=["']?([^"' >]+)/i);
               const candidate = m ? m[1] : s.split(/\r?\n/)[0].trim();
               return cb(candidate);
@@ -422,13 +440,11 @@ function extractUrlFromDataTransferAsync(dt, cb) {
         }
       }
     }
-    // as last resort, callback null
     return cb(null);
   } catch (e) {
     try { return cb(null); } catch(e2){}
   }
 }
-
 
 function addShortcutFromUrl(rawUrl) {
   if (!rawUrl) return;
@@ -440,24 +456,17 @@ function addShortcutFromUrl(rawUrl) {
     const defaultName = host;
     const name = defaultName;
     const favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
-    // push to shortcuts and render
     shortcuts.push({ name, url: parsed.href, icon: favicon });
     localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
     renderShortcuts();
   } catch (err) {
-    console.warn("Nieudane dodanie skrótu z DnD:", rawUrl);
+    console.warn("DnD Error:", rawUrl);
   }
 }
 
-// Visual feedback class
-function addDropHighlight(el) {
-  el.classList.add('dnd-highlight');
-}
-function removeDropHighlight(el) {
-  el.classList.remove('dnd-highlight');
-}
+function addDropHighlight(el) { el.classList.add('dnd-highlight'); }
+function removeDropHighlight(el) { el.classList.remove('dnd-highlight'); }
 
-// Setup for addShortcutBtn
 addShortcutBtn.addEventListener('dragover', (ev) => {
   ev.preventDefault();
   ev.dataTransfer.dropEffect = 'copy';
@@ -473,7 +482,6 @@ addShortcutBtn.addEventListener('drop', (ev) => {
   });
 });
 
-// Setup for whole shortcuts container (allows dropping into area)
 shortcutsContainer.addEventListener('dragover', (ev) => {
   ev.preventDefault();
   ev.dataTransfer.dropEffect = 'copy';
@@ -489,18 +497,12 @@ shortcutsContainer.addEventListener('drop', (ev) => {
   });
 });
 
-
-
-
-
-
-// ====== MOTYW & KOLOR CZCIONKI ======
+// ====== THEME & FONT COLOR ======
 document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("themeToggle");
   const colorInput = document.getElementById("fontColorInput");
   const colorPicker = document.getElementById("fontColorPicker");
 
-  // Helper: Hex to RGBA
   function hexToRgba(hex, alpha) {
     hex = hex.replace('#', '');
     if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
@@ -513,16 +515,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyCustomColor(hex) {
     if (!hex || !/^#([0-9A-F]{3}){1,2}$/i.test(hex)) return;
-
-    // Apply text color
     document.documentElement.style.setProperty("--text", hex);
-    // Apply muted color (same RGB, 0.65 opacity)
     document.documentElement.style.setProperty("--muted", hexToRgba(hex, 0.65));
-
-    // Update inputs
     if (colorInput) colorInput.value = hex;
     if (colorPicker) colorPicker.value = hex;
-
     localStorage.setItem("customFontColor", hex);
   }
 
@@ -539,33 +535,24 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("theme", mode);
   }
 
-  // Init Theme
   let currentTheme = localStorage.getItem("theme") || "dark";
-
-  // Check for saved custom color
   const savedColor = localStorage.getItem("customFontColor");
   if (savedColor) {
-    // If custom color exists, apply it (overrides theme text colors)
-    setTheme(currentTheme); // Set accent colors first
+    setTheme(currentTheme);
     applyCustomColor(savedColor);
   } else {
     setTheme(currentTheme);
   }
 
-  // Theme Toggle Logic
   if (btn) {
     btn.addEventListener("click", () => {
-        // Reset custom color
         localStorage.removeItem("customFontColor");
         if (colorInput) colorInput.value = "";
-
-        // Toggle theme
         currentTheme = (currentTheme === "dark") ? "light" : "dark";
         setTheme(currentTheme);
     });
   }
 
-  // Custom Color Input Logic
   if (colorInput && colorPicker) {
       colorInput.addEventListener("input", (e) => {
           let val = e.target.value.trim();
@@ -574,103 +561,78 @@ document.addEventListener("DOMContentLoaded", () => {
               applyCustomColor(val);
           }
       });
-
       colorPicker.addEventListener("input", (e) => {
           applyCustomColor(e.target.value);
       });
   }
 });
 
-
-// --- Edit shortcut functionality (Clean & Consolidated) ---
+// ====== EDIT SHORTCUT MODAL ======
 let editingShortcutIndex = null;
+const editModal = document.getElementById("editShortcutModal");
+const editNameInput = document.getElementById("editName");
+const editUrlInput = document.getElementById("editUrl");
 
 function openEditModal(index) {
-  const modal = document.getElementById("editShortcutModal");
-  const nameInput = document.getElementById("editName");
-  const urlInput = document.getElementById("editUrl");
-  if (!modal || !nameInput || !urlInput) return;
-  const shortcutsArr = JSON.parse(localStorage.getItem("shortcuts") || "[]");
-  const sc = shortcutsArr[index];
+  if (!editModal || !editNameInput || !editUrlInput) return;
+  const sc = shortcuts[index];
   if (!sc) return;
   editingShortcutIndex = Number(index);
-  nameInput.value = sc.name || "";
-  urlInput.value = sc.url || "";
-  modal.classList.remove("hidden");
-  modal.setAttribute('aria-hidden','false');
-  // focus and select url for quick editing
-  urlInput.focus();
-  urlInput.select();
+  editNameInput.value = sc.name || "";
+  editUrlInput.value = sc.url || "";
+  editModal.classList.remove("hidden");
+  editModal.setAttribute('aria-hidden','false');
+  editUrlInput.focus();
+  editUrlInput.select();
 }
 
 function closeEditModal() {
-  const modal = document.getElementById("editShortcutModal");
-  if (modal) {
-      modal.classList.add("hidden");
-      modal.setAttribute("aria-hidden", "true");
+  if (editModal) {
+      editModal.classList.add("hidden");
+      editModal.setAttribute("aria-hidden", "true");
   }
   editingShortcutIndex = null;
 }
 
-function setupEditModalListeners() {
-    const modal = document.getElementById("editShortcutModal");
+document.addEventListener("DOMContentLoaded", () => {
     const saveBtn = document.getElementById("saveEdit");
     const cancelBtn = document.getElementById("cancelEdit");
-    if (!modal || !saveBtn || !cancelBtn) return;
+    if (!editModal || !saveBtn || !cancelBtn) return;
 
     saveBtn.addEventListener("click", () => {
         if (editingShortcutIndex === null) { closeEditModal(); return; }
         if (!shortcuts[editingShortcutIndex]) { closeEditModal(); return; }
-
-        const nameVal = document.getElementById("editName").value.trim() || shortcuts[editingShortcutIndex].name;
-        let urlVal = document.getElementById("editUrl").value.trim();
-
-        if (!urlVal) { alert("Adres URL nie może być pusty."); return; }
+        const nameVal = editNameInput.value.trim() || shortcuts[editingShortcutIndex].name;
+        let urlVal = editUrlInput.value.trim();
+        if (!urlVal) { customAlert("Adres URL nie może być pusty."); return; }
         if (!/^https?:\/\//i.test(urlVal)) urlVal = "https://" + urlVal;
-
         try {
             const parsed = new URL(urlVal);
             shortcuts[editingShortcutIndex].name = nameVal;
             shortcuts[editingShortcutIndex].url = parsed.href;
             shortcuts[editingShortcutIndex].icon = `https://www.google.com/s2/favicons?domain=${parsed.hostname.replace(/^www\./,'')}&sz=128`;
-
             localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
             renderShortcuts();
             closeEditModal();
         } catch (err) {
-            alert("Nieprawidłowy adres URL.");
+            customAlert("Nieprawidłowy adres URL.");
         }
     });
 
     cancelBtn.addEventListener("click", closeEditModal);
-
-    // Close on click outside or Escape
-    modal.addEventListener("click", (e) => {
-        if (e.target === modal) closeEditModal();
+    editModal.addEventListener("click", (e) => {
+        if (e.target === editModal) closeEditModal();
     });
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !modal.classList.contains("hidden")) closeEditModal();
+        if (e.key === "Escape" && !editModal.classList.contains("hidden")) closeEditModal();
     });
-}
+});
 
-// Call setup once DOM is ready
-document.addEventListener("DOMContentLoaded", setupEditModalListeners);
-
-
-function setupDragAndDrop() {
-  if (!addShortcutBtn || !shortcutsContainer) return;
-  // Drag functions are already defined globally or inside this scope above,
-  // but to avoid duplication we just ensure listeners are attached in the main flow.
-  // The earlier code block already attached them.
-}
-
-
-// ====== TRYB SKUPIENIA (FOCUS MODE) LOGIC ======
+// ====== FOCUS MODE ======
 function toggleFocusMode() {
     isFocusMode = !isFocusMode;
     applyFocusMode();
     localStorage.setItem("focusMode", isFocusMode);
-    // Update text if language is set
     updateLanguage();
 }
 
@@ -682,24 +644,13 @@ function applyFocusMode() {
     }
 }
 
-// Init focus mode on load
 if (focusModeBtn) {
     focusModeBtn.addEventListener("click", toggleFocusMode);
 }
-// Apply initial state
 applyFocusMode();
 
-// ====== POGODA ======
-const weatherWidget = document.getElementById("weatherWidget");
-const weatherToggle = document.getElementById("weatherToggle");
-const weatherIcon = document.getElementById("weatherIcon");
-const weatherTemp = document.getElementById("weatherTemp");
-const weatherDesc = document.getElementById("weatherDesc");
-const weatherHumidity = document.getElementById("weatherHumidity");
-const weatherWind = document.getElementById("weatherWind");
-
-let weatherEnabled = localStorage.getItem("weatherEnabled") === "true";
-let weatherApiKey = localStorage.getItem("weatherApiKey") || "";
+// ====== WEATHER LOGIC ======
+let fetchingWeatherKey = false;
 
 function updateWeatherVisibility() {
     if (weatherEnabled) {
@@ -710,17 +661,11 @@ function updateWeatherVisibility() {
     }
 }
 
-// Flag to prevent multiple prompts
-let fetchingWeatherKey = false;
-
 async function fetchWeather() {
     if (!weatherEnabled) return;
 
     if (!weatherApiKey) {
-        // If enabled but no key, ask for it once
-        // Prevent stacking prompts
         if (fetchingWeatherKey) return;
-
         fetchingWeatherKey = true;
         const key = await customPrompt("Podaj klucz API do WeatherAPI.com (Get your key at weatherapi.com):");
         fetchingWeatherKey = false;
@@ -729,7 +674,6 @@ async function fetchWeather() {
             weatherApiKey = key.trim();
             localStorage.setItem("weatherApiKey", weatherApiKey);
         } else {
-            // Cancelled or empty
             weatherEnabled = false;
             localStorage.setItem("weatherEnabled", "false");
             updateWeatherVisibility();
@@ -761,14 +705,12 @@ async function fetchWeather() {
             const text = data.current.condition.text;
             const humidity = data.current.humidity;
             const wind = data.current.wind_kph;
-
             const t = translations[currentLang];
 
             weatherTemp.textContent = `${temp}°C`;
             weatherDesc.textContent = text;
             weatherIcon.src = iconUrl;
             weatherIcon.alt = text;
-
             weatherHumidity.textContent = `${t.humidity}: ${humidity}%`;
             weatherWind.textContent = `${t.wind}: ${wind} km/h`;
         })
@@ -786,19 +728,10 @@ if (weatherToggle) {
     });
 }
 
-// Update weather every 15 minutes if enabled
 setInterval(fetchWeather, 15 * 60 * 1000);
-
-// Initial check
 updateWeatherVisibility();
 
-
-// ====== DATA (DATE WIDGET) ======
-const dateWidget = document.getElementById("dateWidget");
-const dateToggle = document.getElementById("dateToggle");
-
-let dateEnabled = localStorage.getItem("dateEnabled") === "true";
-
+// ====== DATE WIDGET ======
 function updateDateVisibility() {
     if (dateEnabled) {
         dateWidget.classList.remove("hidden");
@@ -811,10 +744,8 @@ function updateDateVisibility() {
 function updateDate() {
     if (!dateEnabled) return;
     const now = new Date();
-    // Options for full date: "Monday, 23 October 2023"
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const dateStr = now.toLocaleDateString(currentLang === 'pl' ? 'pl-PL' : 'en-US', options);
-    // Capitalize first letter for Polish (e.g. "poniedziałek" -> "Poniedziałek")
     const capitalized = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     dateWidget.textContent = capitalized;
 }
@@ -827,88 +758,5 @@ if (dateToggle) {
     });
 }
 
-// Update date occasionally (every minute is enough)
 setInterval(updateDate, 60 * 1000);
 updateDateVisibility();
-
-
-// ====== CUSTOM MODAL UTILS ======
-
-// Fix showModal to handle hiding Cancel
-function showModal({ title = "", message = "", input = false, defaultValue = "", confirmText = "OK", cancelText = "Anuluj", hideCancel = false }) {
-    return new Promise((resolve) => {
-        cModalTitle.textContent = title;
-        cModalMessage.textContent = message;
-
-        if (input) {
-            cModalInput.value = defaultValue;
-            cModalInput.classList.remove("hidden");
-        } else {
-            cModalInput.classList.add("hidden");
-        }
-
-        cModalConfirm.textContent = confirmText;
-        cModalCancel.textContent = cancelText;
-
-        if (hideCancel) {
-            cModalCancel.style.display = "none";
-        } else {
-            cModalCancel.style.display = "";
-        }
-
-        cModal.classList.remove("hidden");
-
-        if (input) {
-            setTimeout(() => { cModalInput.focus(); cModalInput.select(); }, 50);
-        } else {
-            cModalConfirm.focus();
-        }
-
-        const close = (val) => {
-            cleanup();
-            cModal.classList.add("hidden");
-            resolve(val);
-        };
-
-        const onConfirm = () => {
-            if (input) close(cModalInput.value);
-            else close(true);
-        };
-        const onCancel = () => {
-            close(input ? null : false);
-        };
-        const onKey = (e) => {
-            if (e.key === "Enter") onConfirm();
-            if (e.key === "Escape") onCancel();
-        };
-
-        cModalConfirm.onclick = onConfirm;
-        cModalCancel.onclick = onCancel;
-        cModalInput.onkeydown = onKey;
-
-        // Global keydown for Escape if not input focused
-        const globalKey = (e) => {
-             if (e.key === "Escape") onCancel();
-        };
-        document.addEventListener("keydown", globalKey);
-
-        function cleanup() {
-            cModalConfirm.onclick = null;
-            cModalCancel.onclick = null;
-            cModalInput.onkeydown = null;
-            document.removeEventListener("keydown", globalKey);
-        }
-    });
-}
-
-async function customAlert(msg) {
-    return showModal({ title: "Info", message: msg, hideCancel: true });
-}
-
-async function customConfirm(msg) {
-    return showModal({ title: "Potwierdź", message: msg, confirmText: "Tak", cancelText: "Nie" });
-}
-
-async function customPrompt(msg, def = "") {
-    return showModal({ title: "Wprowadź dane", message: msg, input: true, defaultValue: def, confirmText: "OK", cancelText: "Anuluj" });
-}

@@ -650,10 +650,10 @@ body.focus-mode .date-widget {
 
 /* Update Date Widget Font */
 .date-widget {
-  font-family: inherit; /* Ensure inheritance */
-  letter-spacing: 0.02em; /* Slight tracking for elegance */
-  font-weight: 500; /* Match clock weight */
+  font-family: inherit;
+  letter-spacing: normal;
+  font-weight: 400; /* Thinner */
+  font-size: 1rem; /* Slightly smaller */
   color: var(--text);
-  /* Optional: make it look cleaner */
   text-shadow: 0 2px 10px rgba(0,0,0,0.2);
 }
