@@ -10,6 +10,24 @@
   <!-- tło (warstwa do fade-in) -->
   <div id="bgLayer"></div>
 
+  <!-- Date Widget (Top Left) -->
+  <div id="dateWidget" class="date-widget hidden"></div>
+
+  <!-- Weather Widget (Top Right) -->
+  <div id="weatherWidget" class="weather-widget hidden">
+    <div class="weather-main">
+      <img id="weatherIcon" src="" alt="" />
+      <div class="weather-info">
+        <span id="weatherTemp"></span>
+        <span id="weatherDesc"></span>
+      </div>
+    </div>
+    <div class="weather-details">
+      <span id="weatherHumidity"></span>
+      <span id="weatherWind"></span>
+    </div>
+  </div>
+
   <!-- główna zawartość -->
   <div class="overlay">
     <div class="center-wrap">
@@ -39,6 +57,14 @@
 
       <button id="themeToggle" class="menu-item">
         <span data-i18n="theme">Motyw</span>
+      </button>
+
+      <button id="weatherToggle" class="menu-item">
+        <span data-i18n="weather">Pogoda</span>
+      </button>
+
+      <button id="dateToggle" class="menu-item">
+        <span data-i18n="date">Data</span>
       </button>
 
       <div class="menu-item-static">
@@ -86,6 +112,20 @@
     <div class="modal-actions">
       <button id="cancelEdit" class="control-btn" data-i18n="cancel">Anuluj</button>
       <button id="saveEdit" class="control-btn" data-i18n="save">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<div id="customModal" class="modal hidden" aria-hidden="true">
+  <div class="modal-content">
+    <h3 id="cModalTitle" class="modal-title"></h3>
+    <div id="cModalBody" class="modal-body">
+      <p id="cModalMessage"></p>
+      <input type="text" id="cModalInput" class="modal-input hidden" />
+    </div>
+    <div class="modal-actions">
+      <button id="cModalCancel" class="control-btn" data-i18n="cancel">Anuluj</button>
+      <button id="cModalConfirm" class="control-btn">OK</button>
     </div>
   </div>
 </div>

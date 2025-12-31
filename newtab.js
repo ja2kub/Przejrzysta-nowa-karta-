@@ -1,4 +1,19 @@
 
+// ====== CUSTOM MODAL UTILS ======
+const cModal = document.getElementById("customModal");
+const cModalTitle = document.getElementById("cModalTitle");
+const cModalMessage = document.getElementById("cModalMessage");
+const cModalInput = document.getElementById("cModalInput");
+const cModalCancel = document.getElementById("cModalCancel");
+const cModalConfirm = document.getElementById("cModalConfirm");
+
+
+// ====== CUSTOM MODAL UTILS ======
+
+
+// ====== CUSTOM MODAL UTILS ======
+
+
 function normalizeUrl(url) {
     if (!/^https?:\/\//i.test(url)) {
         return "https://" + url;
@@ -123,7 +138,11 @@ const translations = {
     invalidUrl: "Nieprawidłowy adres URL.",
     urlPrompt: "Adres URL:",
     namePrompt: "Nazwa skrótu (ENTER = domyślna):",
-    fontColor: "Kolor czcionki"
+    fontColor: "Kolor czcionki",
+    weather: "Pogoda",
+    date: "Data",
+    humidity: "Wilgotność",
+    wind: "Wiatr"
   },
   en: {
     addShortcut: "＋ Add Shortcut",
@@ -146,7 +165,11 @@ const translations = {
     invalidUrl: "Invalid URL.",
     urlPrompt: "URL Address:",
     namePrompt: "Shortcut Name (ENTER = default):",
-    fontColor: "Font Color"
+    fontColor: "Font Color",
+    weather: "Weather",
+    date: "Date",
+    humidity: "Humidity",
+    wind: "Wind"
   }
 };
 
@@ -301,7 +324,7 @@ function renderShortcuts() {
     a.appendChild(iconWrap);
     a.appendChild(nameDiv);
 
-    a.addEventListener("contextmenu", (ev) => {
+    a.addEventListener("contextmenu", async (ev) => {
       ev.preventDefault();
       // If Control key is pressed, edit instead of delete
       if (ev.ctrlKey) {
@@ -310,7 +333,7 @@ function renderShortcuts() {
       }
 
       const t = translations[currentLang];
-      const ok = confirm(t ? t.confirmDelete : `Usunąć skrót "${s.name}"?`);
+      const ok = await customConfirm(t ? t.confirmDelete : `Usunąć skrót "${s.name}"?`);
       if (ok) {
         shortcuts.splice(i,1);
         localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
@@ -323,22 +346,24 @@ function renderShortcuts() {
 }
 renderShortcuts();
 
-addShortcutBtn.addEventListener("click", () => {
-  let url = prompt("Adres URL:");
+addShortcutBtn.addEventListener("click", async () => {
+  const t = translations[currentLang];
+  let url = await customPrompt(t ? t.urlPrompt : "Adres URL:");
   if (!url) return;
+  url = url.trim();
   if (!/^https?:\/\//i.test(url)) url = "https://" + url;
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.replace(/^www\./,"");
     const defaultName = host;
-    const name = prompt("Nazwa skrótu (ENTER = domyślna):", defaultName) || defaultName;
+    const name = await customPrompt((t ? t.namePrompt : "Nazwa skrótu (ENTER = domyślna):"), defaultName) || defaultName;
     const favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
 
     shortcuts.push({ name, url: parsed.href, icon: favicon });
     localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
     renderShortcuts();
   } catch (err) {
-    alert("Nieprawidłowy adres URL.");
+    customAlert(t ? t.invalidUrl : "Nieprawidłowy adres URL.");
   }
 });
 
@@ -663,3 +688,227 @@ if (focusModeBtn) {
 }
 // Apply initial state
 applyFocusMode();
+
+// ====== POGODA ======
+const weatherWidget = document.getElementById("weatherWidget");
+const weatherToggle = document.getElementById("weatherToggle");
+const weatherIcon = document.getElementById("weatherIcon");
+const weatherTemp = document.getElementById("weatherTemp");
+const weatherDesc = document.getElementById("weatherDesc");
+const weatherHumidity = document.getElementById("weatherHumidity");
+const weatherWind = document.getElementById("weatherWind");
+
+let weatherEnabled = localStorage.getItem("weatherEnabled") === "true";
+let weatherApiKey = localStorage.getItem("weatherApiKey") || "";
+
+function updateWeatherVisibility() {
+    if (weatherEnabled) {
+        weatherWidget.classList.remove("hidden");
+        fetchWeather();
+    } else {
+        weatherWidget.classList.add("hidden");
+    }
+}
+
+// Flag to prevent multiple prompts
+let fetchingWeatherKey = false;
+
+async function fetchWeather() {
+    if (!weatherEnabled) return;
+
+    if (!weatherApiKey) {
+        // If enabled but no key, ask for it once
+        // Prevent stacking prompts
+        if (fetchingWeatherKey) return;
+
+        fetchingWeatherKey = true;
+        const key = await customPrompt("Podaj klucz API do WeatherAPI.com (Get your key at weatherapi.com):");
+        fetchingWeatherKey = false;
+
+        if (key && key.trim()) {
+            weatherApiKey = key.trim();
+            localStorage.setItem("weatherApiKey", weatherApiKey);
+        } else {
+            // Cancelled or empty
+            weatherEnabled = false;
+            localStorage.setItem("weatherEnabled", "false");
+            updateWeatherVisibility();
+            return;
+        }
+    }
+
+    const lang = currentLang || "pl";
+    const url = `https://api.weatherapi.com/v1/current.json?key=${weatherApiKey}&q=auto:ip&lang=${lang}`;
+
+    fetch(url)
+        .then(async (res) => {
+            if (!res.ok) {
+                if (res.status === 401 || res.status === 403) {
+                     await customAlert("Błąd klucza API pogody. Sprawdź klucz.");
+                     localStorage.removeItem("weatherApiKey");
+                     weatherApiKey = "";
+                     weatherEnabled = false;
+                     updateWeatherVisibility();
+                }
+                throw new Error("Weather fetch failed");
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (!data || !data.current) return;
+            const temp = data.current.temp_c;
+            const iconUrl = "https:" + data.current.condition.icon;
+            const text = data.current.condition.text;
+            const humidity = data.current.humidity;
+            const wind = data.current.wind_kph;
+
+            const t = translations[currentLang];
+
+            weatherTemp.textContent = `${temp}°C`;
+            weatherDesc.textContent = text;
+            weatherIcon.src = iconUrl;
+            weatherIcon.alt = text;
+
+            weatherHumidity.textContent = `${t.humidity}: ${humidity}%`;
+            weatherWind.textContent = `${t.wind}: ${wind} km/h`;
+        })
+        .catch(err => {
+            console.error("Weather Error:", err);
+            weatherDesc.textContent = "...";
+        });
+}
+
+if (weatherToggle) {
+    weatherToggle.addEventListener("click", () => {
+        weatherEnabled = !weatherEnabled;
+        localStorage.setItem("weatherEnabled", weatherEnabled);
+        updateWeatherVisibility();
+    });
+}
+
+// Update weather every 15 minutes if enabled
+setInterval(fetchWeather, 15 * 60 * 1000);
+
+// Initial check
+updateWeatherVisibility();
+
+
+// ====== DATA (DATE WIDGET) ======
+const dateWidget = document.getElementById("dateWidget");
+const dateToggle = document.getElementById("dateToggle");
+
+let dateEnabled = localStorage.getItem("dateEnabled") === "true";
+
+function updateDateVisibility() {
+    if (dateEnabled) {
+        dateWidget.classList.remove("hidden");
+        updateDate();
+    } else {
+        dateWidget.classList.add("hidden");
+    }
+}
+
+function updateDate() {
+    if (!dateEnabled) return;
+    const now = new Date();
+    // Options for full date: "Monday, 23 October 2023"
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateStr = now.toLocaleDateString(currentLang === 'pl' ? 'pl-PL' : 'en-US', options);
+    // Capitalize first letter for Polish (e.g. "poniedziałek" -> "Poniedziałek")
+    const capitalized = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+    dateWidget.textContent = capitalized;
+}
+
+if (dateToggle) {
+    dateToggle.addEventListener("click", () => {
+        dateEnabled = !dateEnabled;
+        localStorage.setItem("dateEnabled", dateEnabled);
+        updateDateVisibility();
+    });
+}
+
+// Update date occasionally (every minute is enough)
+setInterval(updateDate, 60 * 1000);
+updateDateVisibility();
+
+
+// ====== CUSTOM MODAL UTILS ======
+
+// Fix showModal to handle hiding Cancel
+function showModal({ title = "", message = "", input = false, defaultValue = "", confirmText = "OK", cancelText = "Anuluj", hideCancel = false }) {
+    return new Promise((resolve) => {
+        cModalTitle.textContent = title;
+        cModalMessage.textContent = message;
+
+        if (input) {
+            cModalInput.value = defaultValue;
+            cModalInput.classList.remove("hidden");
+        } else {
+            cModalInput.classList.add("hidden");
+        }
+
+        cModalConfirm.textContent = confirmText;
+        cModalCancel.textContent = cancelText;
+
+        if (hideCancel) {
+            cModalCancel.style.display = "none";
+        } else {
+            cModalCancel.style.display = "";
+        }
+
+        cModal.classList.remove("hidden");
+
+        if (input) {
+            setTimeout(() => { cModalInput.focus(); cModalInput.select(); }, 50);
+        } else {
+            cModalConfirm.focus();
+        }
+
+        const close = (val) => {
+            cleanup();
+            cModal.classList.add("hidden");
+            resolve(val);
+        };
+
+        const onConfirm = () => {
+            if (input) close(cModalInput.value);
+            else close(true);
+        };
+        const onCancel = () => {
+            close(input ? null : false);
+        };
+        const onKey = (e) => {
+            if (e.key === "Enter") onConfirm();
+            if (e.key === "Escape") onCancel();
+        };
+
+        cModalConfirm.onclick = onConfirm;
+        cModalCancel.onclick = onCancel;
+        cModalInput.onkeydown = onKey;
+
+        // Global keydown for Escape if not input focused
+        const globalKey = (e) => {
+             if (e.key === "Escape") onCancel();
+        };
+        document.addEventListener("keydown", globalKey);
+
+        function cleanup() {
+            cModalConfirm.onclick = null;
+            cModalCancel.onclick = null;
+            cModalInput.onkeydown = null;
+            document.removeEventListener("keydown", globalKey);
+        }
+    });
+}
+
+async function customAlert(msg) {
+    return showModal({ title: "Info", message: msg, hideCancel: true });
+}
+
+async function customConfirm(msg) {
+    return showModal({ title: "Potwierdź", message: msg, confirmText: "Tak", cancelText: "Nie" });
+}
+
+async function customPrompt(msg, def = "") {
+    return showModal({ title: "Wprowadź dane", message: msg, input: true, defaultValue: def, confirmText: "OK", cancelText: "Anuluj" });
+}
