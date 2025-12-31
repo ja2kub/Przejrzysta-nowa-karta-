@@ -482,3 +482,65 @@ body.focus-mode #focusModeBtn {
   border-color: rgba(255,255,255,0.3);
   background: rgba(255,255,255,0.1);
 }
+
+/* Weather Widget */
+.weather-widget {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  background: var(--glass);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  color: var(--text);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer; /* Click to refresh or show more info maybe? or just consistent UI */
+}
+
+.weather-widget.hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+
+.weather-widget:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+}
+
+#weatherIcon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.weather-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  line-height: 1.2;
+}
+
+#weatherTemp {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+#weatherDesc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+/* Adjust for focus mode if needed - typically hidden in focus mode */
+body.focus-mode .weather-widget {
+  display: none !important;
+}

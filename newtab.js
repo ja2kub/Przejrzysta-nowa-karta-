@@ -123,7 +123,8 @@ const translations = {
     invalidUrl: "Nieprawidłowy adres URL.",
     urlPrompt: "Adres URL:",
     namePrompt: "Nazwa skrótu (ENTER = domyślna):",
-    fontColor: "Kolor czcionki"
+    fontColor: "Kolor czcionki",
+    weather: "Pogoda"
   },
   en: {
     addShortcut: "＋ Add Shortcut",
@@ -146,7 +147,8 @@ const translations = {
     invalidUrl: "Invalid URL.",
     urlPrompt: "URL Address:",
     namePrompt: "Shortcut Name (ENTER = default):",
-    fontColor: "Font Color"
+    fontColor: "Font Color",
+    weather: "Weather"
   }
 };
 
@@ -663,3 +665,88 @@ if (focusModeBtn) {
 }
 // Apply initial state
 applyFocusMode();
+
+// ====== POGODA ======
+const weatherWidget = document.getElementById("weatherWidget");
+const weatherToggle = document.getElementById("weatherToggle");
+const weatherIcon = document.getElementById("weatherIcon");
+const weatherTemp = document.getElementById("weatherTemp");
+const weatherDesc = document.getElementById("weatherDesc");
+
+let weatherEnabled = localStorage.getItem("weatherEnabled") === "true";
+let weatherApiKey = localStorage.getItem("weatherApiKey") || "";
+
+function updateWeatherVisibility() {
+    if (weatherEnabled) {
+        weatherWidget.classList.remove("hidden");
+        fetchWeather();
+    } else {
+        weatherWidget.classList.add("hidden");
+    }
+}
+
+function fetchWeather() {
+    if (!weatherEnabled) return;
+
+    if (!weatherApiKey) {
+        // If enabled but no key, ask for it once
+        const key = prompt("Podaj klucz API do WeatherAPI.com (Get your key at weatherapi.com):");
+        if (key && key.trim()) {
+            weatherApiKey = key.trim();
+            localStorage.setItem("weatherApiKey", weatherApiKey);
+        } else {
+            // Cancelled or empty
+            weatherEnabled = false;
+            localStorage.setItem("weatherEnabled", "false");
+            updateWeatherVisibility();
+            return;
+        }
+    }
+
+    const lang = currentLang || "pl";
+    const url = `https://api.weatherapi.com/v1/current.json?key=${weatherApiKey}&q=auto:ip&lang=${lang}`;
+
+    fetch(url)
+        .then(res => {
+            if (!res.ok) {
+                if (res.status === 401 || res.status === 403) {
+                     alert("Błąd klucza API pogody. Sprawdź klucz.");
+                     localStorage.removeItem("weatherApiKey");
+                     weatherApiKey = "";
+                     weatherEnabled = false;
+                     updateWeatherVisibility();
+                }
+                throw new Error("Weather fetch failed");
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (!data || !data.current) return;
+            const temp = data.current.temp_c;
+            const iconUrl = "https:" + data.current.condition.icon;
+            const text = data.current.condition.text;
+
+            weatherTemp.textContent = `${temp}°C`;
+            weatherDesc.textContent = text;
+            weatherIcon.src = iconUrl;
+            weatherIcon.alt = text;
+        })
+        .catch(err => {
+            console.error("Weather Error:", err);
+            weatherDesc.textContent = "...";
+        });
+}
+
+if (weatherToggle) {
+    weatherToggle.addEventListener("click", () => {
+        weatherEnabled = !weatherEnabled;
+        localStorage.setItem("weatherEnabled", weatherEnabled);
+        updateWeatherVisibility();
+    });
+}
+
+// Update weather every 15 minutes if enabled
+setInterval(fetchWeather, 15 * 60 * 1000);
+
+// Initial check
+updateWeatherVisibility();

@@ -10,6 +10,15 @@
   <!-- tło (warstwa do fade-in) -->
   <div id="bgLayer"></div>
 
+  <!-- Weather Widget -->
+  <div id="weatherWidget" class="weather-widget hidden">
+    <img id="weatherIcon" src="" alt="" />
+    <div class="weather-info">
+      <span id="weatherTemp"></span>
+      <span id="weatherDesc"></span>
+    </div>
+  </div>
+
   <!-- główna zawartość -->
   <div class="overlay">
     <div class="center-wrap">
@@ -39,6 +48,10 @@
 
       <button id="themeToggle" class="menu-item">
         <span data-i18n="theme">Motyw</span>
+      </button>
+
+      <button id="weatherToggle" class="menu-item">
+        <span data-i18n="weather">Pogoda</span>
       </button>
 
       <div class="menu-item-static">
