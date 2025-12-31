@@ -10,12 +10,21 @@
   <!-- tło (warstwa do fade-in) -->
   <div id="bgLayer"></div>
 
-  <!-- Weather Widget -->
+  <!-- Date Widget (Top Left) -->
+  <div id="dateWidget" class="date-widget hidden"></div>
+
+  <!-- Weather Widget (Top Right) -->
   <div id="weatherWidget" class="weather-widget hidden">
-    <img id="weatherIcon" src="" alt="" />
-    <div class="weather-info">
-      <span id="weatherTemp"></span>
-      <span id="weatherDesc"></span>
+    <div class="weather-main">
+      <img id="weatherIcon" src="" alt="" />
+      <div class="weather-info">
+        <span id="weatherTemp"></span>
+        <span id="weatherDesc"></span>
+      </div>
+    </div>
+    <div class="weather-details">
+      <span id="weatherHumidity"></span>
+      <span id="weatherWind"></span>
     </div>
   </div>
 
@@ -52,6 +61,10 @@
 
       <button id="weatherToggle" class="menu-item">
         <span data-i18n="weather">Pogoda</span>
+      </button>
+
+      <button id="dateToggle" class="menu-item">
+        <span data-i18n="date">Data</span>
       </button>
 
       <div class="menu-item-static">

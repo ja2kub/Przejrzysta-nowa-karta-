@@ -124,7 +124,10 @@ const translations = {
     urlPrompt: "Adres URL:",
     namePrompt: "Nazwa skrótu (ENTER = domyślna):",
     fontColor: "Kolor czcionki",
-    weather: "Pogoda"
+    weather: "Pogoda",
+    date: "Data",
+    humidity: "Wilgotność",
+    wind: "Wiatr"
   },
   en: {
     addShortcut: "＋ Add Shortcut",
@@ -148,7 +151,10 @@ const translations = {
     urlPrompt: "URL Address:",
     namePrompt: "Shortcut Name (ENTER = default):",
     fontColor: "Font Color",
-    weather: "Weather"
+    weather: "Weather",
+    date: "Date",
+    humidity: "Humidity",
+    wind: "Wind"
   }
 };
 
@@ -672,6 +678,8 @@ const weatherToggle = document.getElementById("weatherToggle");
 const weatherIcon = document.getElementById("weatherIcon");
 const weatherTemp = document.getElementById("weatherTemp");
 const weatherDesc = document.getElementById("weatherDesc");
+const weatherHumidity = document.getElementById("weatherHumidity");
+const weatherWind = document.getElementById("weatherWind");
 
 let weatherEnabled = localStorage.getItem("weatherEnabled") === "true";
 let weatherApiKey = localStorage.getItem("weatherApiKey") || "";
@@ -725,11 +733,18 @@ function fetchWeather() {
             const temp = data.current.temp_c;
             const iconUrl = "https:" + data.current.condition.icon;
             const text = data.current.condition.text;
+            const humidity = data.current.humidity;
+            const wind = data.current.wind_kph;
+
+            const t = translations[currentLang];
 
             weatherTemp.textContent = `${temp}°C`;
             weatherDesc.textContent = text;
             weatherIcon.src = iconUrl;
             weatherIcon.alt = text;
+
+            weatherHumidity.textContent = `${t.humidity}: ${humidity}%`;
+            weatherWind.textContent = `${t.wind}: ${wind} km/h`;
         })
         .catch(err => {
             console.error("Weather Error:", err);
@@ -750,3 +765,42 @@ setInterval(fetchWeather, 15 * 60 * 1000);
 
 // Initial check
 updateWeatherVisibility();
+
+
+// ====== DATA (DATE WIDGET) ======
+const dateWidget = document.getElementById("dateWidget");
+const dateToggle = document.getElementById("dateToggle");
+
+let dateEnabled = localStorage.getItem("dateEnabled") === "true";
+
+function updateDateVisibility() {
+    if (dateEnabled) {
+        dateWidget.classList.remove("hidden");
+        updateDate();
+    } else {
+        dateWidget.classList.add("hidden");
+    }
+}
+
+function updateDate() {
+    if (!dateEnabled) return;
+    const now = new Date();
+    // Options for full date: "Monday, 23 October 2023"
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateStr = now.toLocaleDateString(currentLang === 'pl' ? 'pl-PL' : 'en-US', options);
+    // Capitalize first letter for Polish (e.g. "poniedziałek" -> "Poniedziałek")
+    const capitalized = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+    dateWidget.textContent = capitalized;
+}
+
+if (dateToggle) {
+    dateToggle.addEventListener("click", () => {
+        dateEnabled = !dateEnabled;
+        localStorage.setItem("dateEnabled", dateEnabled);
+        updateDateVisibility();
+    });
+}
+
+// Update date occasionally (every minute is enough)
+setInterval(updateDate, 60 * 1000);
+updateDateVisibility();

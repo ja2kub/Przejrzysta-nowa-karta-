@@ -544,3 +544,67 @@ body.focus-mode #focusModeBtn {
 body.focus-mode .weather-widget {
   display: none !important;
 }
+
+/* Date Widget */
+.date-widget {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 10px 18px;
+  background: var(--glass);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 500;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+  user-select: none;
+}
+.date-widget.hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+.date-widget:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+}
+
+/* Weather Widget Updates */
+.weather-widget {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 18px;
+}
+
+.weather-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.weather-details {
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  width: 100%;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.weather-details span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Focus mode hiding */
+body.focus-mode .date-widget {
+  display: none !important;
+}
