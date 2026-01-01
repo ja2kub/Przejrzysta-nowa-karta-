@@ -744,3 +744,66 @@ body.edit-mode .draggable-item:active {
 body.edit-mode .weather-widget * {
   pointer-events: none !important;
 }
+
+/* Edit Mode Controls Wrapper */
+.edit-mode-controls {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.edit-mode-controls.hidden {
+  display: none;
+}
+
+/* Reset exit button positioning since it's now in a flex container */
+.exit-edit-btn {
+  position: static;
+  transform: none;
+}
+.exit-edit-btn:hover {
+  transform: scale(1.05);
+}
+
+.edit-hint {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.8);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.4);
+  padding: 4px 10px;
+  border-radius: 99px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Resize Handle */
+.resize-handle {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  z-index: 10001;
+  pointer-events: auto !important; /* Override the * pointer-events: none */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  opacity: 0.8;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.resize-handle:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* Ensure handle is visible even if overflow is hidden (though usually overflow is visible) */
+.draggable-item {
+  overflow: visible !important;
+}

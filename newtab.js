@@ -241,7 +241,8 @@ const translations = {
     editLayout: "Edytuj układ",
     exitEditLayout: "Zakończ edycję",
     resetLayout: "Zresetuj układ",
-    resetLayoutConfirm: "Czy na pewno przywrócić domyślny układ?"
+    resetLayoutConfirm: "Czy na pewno przywrócić domyślny układ?",
+    editHint: "Przeciągnij by przesunąć • Scroll/Uchwyt by skalować"
   },
   en: {
     addShortcut: "＋ Add Shortcut",
@@ -274,7 +275,8 @@ const translations = {
     editLayout: "Edit Layout",
     exitEditLayout: "Finish Editing",
     resetLayout: "Reset Layout",
-    resetLayoutConfirm: "Are you sure you want to reset layout?"
+    resetLayoutConfirm: "Are you sure you want to reset layout?",
+    editHint: "Drag to move • Scroll/Handle to resize"
   }
 };
 
@@ -792,6 +794,7 @@ let isEditMode = false;
 let guiPositions = JSON.parse(localStorage.getItem("guiPositions") || "{}");
 const editLayoutBtn = document.getElementById("editLayoutBtn");
 const resetLayoutBtn = document.getElementById("resetLayoutBtn");
+const editModeControls = document.getElementById("editModeControls");
 const exitEditModeBtn = document.getElementById("exitEditModeBtn");
 
 const draggableIds = [
@@ -847,7 +850,7 @@ function toggleEditMode() {
   isEditMode = !isEditMode;
   if (isEditMode) {
     document.body.classList.add("edit-mode");
-    exitEditModeBtn.classList.remove("hidden");
+    if (editModeControls) editModeControls.classList.remove("hidden");
 
     // Close any open menus
     document.querySelectorAll(".menu-content").forEach(m => m.classList.add("hidden"));
@@ -856,7 +859,7 @@ function toggleEditMode() {
     updateLanguage();
   } else {
     document.body.classList.remove("edit-mode");
-    exitEditModeBtn.classList.add("hidden");
+    if (editModeControls) editModeControls.classList.add("hidden");
     disableDragAndResize();
     updateLanguage();
   }
@@ -871,10 +874,33 @@ let dragStartTop = 0;
 let isDragging = false;
 let suppressClick = false;
 
+// Resize Handle State
+let resizeEl = null;
+let resizeStartY = 0;
+let resizeStartScale = 1.0;
+
 function onMouseDown(e) {
   if (!isEditMode) return;
   // Allow clicking the exit button
   if (e.target.closest("#exitEditModeBtn")) return;
+
+  // Check for Resize Handle Click
+  const resizeHandle = e.target.closest(".resize-handle");
+  if (resizeHandle) {
+      e.preventDefault();
+      e.stopPropagation();
+      const parent = resizeHandle.closest(".draggable-item");
+      if (parent) {
+          resizeEl = parent;
+          resizeStartY = e.clientY;
+          const id = parent.id;
+          if (!guiPositions[id]) guiPositions[id] = {};
+          resizeStartScale = guiPositions[id].scale || 1.0;
+          document.addEventListener("mousemove", onResizeMove);
+          document.addEventListener("mouseup", onResizeUp);
+      }
+      return;
+  }
 
   const target = e.target.closest(".draggable-item");
   if (!target) return;
@@ -962,6 +988,37 @@ function onMouseUp(e) {
   document.removeEventListener("mouseup", onMouseUp);
 }
 
+function onResizeMove(e) {
+    if (!resizeEl) return;
+    e.preventDefault();
+
+    const dy = e.clientY - resizeStartY;
+    // Scale sensitivity: 100px drag = 0.5 scale change
+    const deltaScale = dy * 0.005;
+    let newScale = resizeStartScale + deltaScale;
+
+    // Limits
+    if (newScale < 0.5) newScale = 0.5;
+    if (newScale > 3.0) newScale = 3.0;
+
+    const id = resizeEl.id;
+    if (!guiPositions[id]) guiPositions[id] = {};
+    guiPositions[id].scale = newScale;
+
+    applyPositionAndScale(resizeEl, guiPositions[id]);
+}
+
+function onResizeUp(e) {
+    if (resizeEl) {
+        const id = resizeEl.id;
+        localStorage.setItem("guiPositions", JSON.stringify(guiPositions));
+    }
+    resizeEl = null;
+    document.removeEventListener("mousemove", onResizeMove);
+    document.removeEventListener("mouseup", onResizeUp);
+}
+
+
 function onWheel(e) {
     if (!isEditMode) return;
     const target = e.target.closest(".draggable-item");
@@ -991,6 +1048,7 @@ function onWheel(e) {
 function onGlobalClick(e) {
     if (!isEditMode) return;
     if (e.target.closest("#exitEditModeBtn")) return; // Allow exit button
+    if (e.target.closest(".resize-handle")) return; // Allow resize handle logic (though mousedown handles it)
 
     // If we clicked inside a draggable item, stop it.
     // This disables opening menus, clicking links, submitting forms, etc.
@@ -1003,7 +1061,15 @@ function onGlobalClick(e) {
 function enableDragAndResize() {
   draggableIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.classList.add("draggable-item");
+    if (el) {
+        el.classList.add("draggable-item");
+        // Add handle if missing
+        if (!el.querySelector(".resize-handle")) {
+            const h = document.createElement("div");
+            h.className = "resize-handle";
+            el.appendChild(h);
+        }
+    }
   });
   document.addEventListener("mousedown", onMouseDown);
   document.addEventListener("wheel", onWheel, { passive: false });
@@ -1013,7 +1079,11 @@ function enableDragAndResize() {
 function disableDragAndResize() {
   draggableIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.classList.remove("draggable-item");
+    if (el) {
+        el.classList.remove("draggable-item");
+        const h = el.querySelector(".resize-handle");
+        if (h) h.remove();
+    }
   });
   document.removeEventListener("mousedown", onMouseDown);
   document.removeEventListener("wheel", onWheel);
