@@ -787,6 +787,7 @@ let isEditMode = false;
 let guiPositions = JSON.parse(localStorage.getItem("guiPositions") || "{}");
 const editLayoutBtn = document.getElementById("editLayoutBtn");
 const resetLayoutBtn = document.getElementById("resetLayoutBtn");
+const exitEditModeBtn = document.getElementById("exitEditModeBtn");
 
 const draggableIds = [
   "clock",
@@ -799,19 +800,34 @@ const draggableIds = [
   "controlsRight"
 ];
 
+function applyPositionAndScale(el, pos) {
+    if (pos.left !== undefined) {
+        el.style.position = "fixed";
+        el.style.left = pos.left;
+        el.style.top = pos.top;
+        el.style.right = "auto";
+        el.style.bottom = "auto";
+        el.style.margin = "0";
+    }
+    if (pos.scale !== undefined) {
+        el.style.transform = `scale(${pos.scale})`;
+        el.style.transformOrigin = "center center";
+    } else {
+        el.style.transform = "none";
+    }
+    // Restore width if saved (specifically for searchBox)
+    if (pos.width !== undefined) {
+        el.style.width = pos.width;
+    }
+}
+
 function loadGuiPositions() {
   draggableIds.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const pos = guiPositions[id];
     if (pos) {
-      el.style.position = "fixed";
-      el.style.left = pos.left;
-      el.style.top = pos.top;
-      el.style.right = "auto"; // override default right/bottom if needed
-      el.style.bottom = "auto";
-      el.style.margin = "0";   // clear centering margins
-      el.style.transform = "none"; // clear centering transforms if any
+      applyPositionAndScale(el, pos);
     }
   });
 }
@@ -826,16 +842,22 @@ function toggleEditMode() {
   isEditMode = !isEditMode;
   if (isEditMode) {
     document.body.classList.add("edit-mode");
-    enableDrag();
-    updateLanguage(); // to update button text
+    exitEditModeBtn.classList.remove("hidden");
+
+    // Close any open menus
+    document.querySelectorAll(".menu-content").forEach(m => m.classList.add("hidden"));
+
+    enableDragAndResize();
+    updateLanguage();
   } else {
     document.body.classList.remove("edit-mode");
-    disableDrag();
+    exitEditModeBtn.classList.add("hidden");
+    disableDragAndResize();
     updateLanguage();
   }
 }
 
-// Drag State
+// Drag & Scale State
 let dragEl = null;
 let dragStartX = 0;
 let dragStartY = 0;
@@ -846,7 +868,9 @@ let suppressClick = false;
 
 function onMouseDown(e) {
   if (!isEditMode) return;
-  // Find draggable parent
+  // Allow clicking the exit button
+  if (e.target.closest("#exitEditModeBtn")) return;
+
   const target = e.target.closest(".draggable-item");
   if (!target) return;
 
@@ -871,7 +895,6 @@ function onMouseMove(e) {
   const dx = e.clientX - dragStartX;
   const dy = e.clientY - dragStartY;
 
-  // Threshold to detect drag vs click
   if (!isDragging && Math.sqrt(dx*dx + dy*dy) > 5) {
       isDragging = true;
 
@@ -882,11 +905,21 @@ function onMouseMove(e) {
       dragEl.style.right = "auto";
       dragEl.style.bottom = "auto";
       dragEl.style.margin = "0";
-      dragEl.style.transform = "none";
+
+      // For searchBox, fix the width to current pixel value if not already set
+      if (dragEl.id === "searchBox") {
+          const w = dragEl.offsetWidth;
+          dragEl.style.width = w + "px";
+      }
+
+      // Maintain scale during drag
+      const saved = guiPositions[dragEl.id];
+      const s = saved && saved.scale ? saved.scale : 1;
+      dragEl.style.transform = `scale(${s})`;
   }
 
   if (isDragging) {
-      e.preventDefault(); // prevent selection
+      e.preventDefault();
       dragEl.style.left = (dragStartLeft + dx) + "px";
       dragEl.style.top = (dragStartTop + dy) + "px";
   }
@@ -896,16 +929,15 @@ function onMouseUp(e) {
   if (!dragEl) return;
 
   if (isDragging) {
-      // Save position
       const id = dragEl.id;
       if (id) {
-        guiPositions[id] = {
-          left: dragEl.style.left,
-          top: dragEl.style.top
-        };
+        if (!guiPositions[id]) guiPositions[id] = {};
+        guiPositions[id].left = dragEl.style.left;
+        guiPositions[id].top = dragEl.style.top;
+        if (id === "searchBox") guiPositions[id].width = dragEl.style.width;
         localStorage.setItem("guiPositions", JSON.stringify(guiPositions));
       }
-      // Suppress the subsequent click event
+      // Suppress subsequent click
       suppressClick = true;
       setTimeout(() => suppressClick = false, 50);
   }
@@ -916,44 +948,74 @@ function onMouseUp(e) {
   document.removeEventListener("mouseup", onMouseUp);
 }
 
-// Global capture listener to stop clicks if we just dragged
-document.addEventListener("click", (e) => {
-    if (suppressClick) {
+function onWheel(e) {
+    if (!isEditMode) return;
+    const target = e.target.closest(".draggable-item");
+    if (!target) return;
+
+    e.preventDefault();
+    const id = target.id;
+    if (!guiPositions[id]) guiPositions[id] = {};
+
+    let currentScale = guiPositions[id].scale || 1.0;
+
+    // Adjust scale
+    if (e.deltaY < 0) currentScale += 0.05;
+    else currentScale -= 0.05;
+
+    // Limits
+    if (currentScale < 0.5) currentScale = 0.5;
+    if (currentScale > 3.0) currentScale = 3.0;
+
+    guiPositions[id].scale = currentScale;
+    localStorage.setItem("guiPositions", JSON.stringify(guiPositions));
+
+    applyPositionAndScale(target, guiPositions[id]);
+}
+
+// Global capture to stop ALL clicks on draggable items in edit mode (except Exit btn)
+function onGlobalClick(e) {
+    if (!isEditMode) return;
+    if (e.target.closest("#exitEditModeBtn")) return; // Allow exit button
+
+    // If we clicked inside a draggable item, stop it.
+    // This disables opening menus, clicking links, submitting forms, etc.
+    if (e.target.closest(".draggable-item")) {
         e.preventDefault();
         e.stopPropagation();
     }
-}, true);
+}
 
-function enableDrag() {
+function enableDragAndResize() {
   draggableIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add("draggable-item");
   });
   document.addEventListener("mousedown", onMouseDown);
+  document.addEventListener("wheel", onWheel, { passive: false });
+  document.addEventListener("click", onGlobalClick, true); // Capture phase!
 }
 
-function disableDrag() {
+function disableDragAndResize() {
   draggableIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove("draggable-item");
   });
   document.removeEventListener("mousedown", onMouseDown);
+  document.removeEventListener("wheel", onWheel);
+  document.removeEventListener("click", onGlobalClick, true);
 }
 
 if (editLayoutBtn) {
   editLayoutBtn.addEventListener("click", () => {
     toggleEditMode();
-    // Update button text logic is handled in updateLanguage,
-    // but we need to hook into it or just toggle specific text here.
-    // Let's use the updateLanguage mechanism by changing the data-i18n attribute or handling it there.
-    // Actually, updateLanguage checks isFocusMode. We should add similar check for edit mode or just swap text manually for now.
-    const t = translations[currentLang];
-    const span = editLayoutBtn.querySelector("span");
-    if (span) {
-       span.dataset.i18n = isEditMode ? "exitEditLayout" : "editLayout";
-       span.textContent = t[span.dataset.i18n];
-    }
   });
+}
+
+if (exitEditModeBtn) {
+    exitEditModeBtn.addEventListener("click", () => {
+        toggleEditMode();
+    });
 }
 
 if (resetLayoutBtn) {
