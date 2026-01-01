@@ -660,3 +660,34 @@ body.focus-mode .date-widget {
 
 /* Generic utility */
 .hidden { display: none !important; }
+
+/* Edit Mode Styles */
+body.edit-mode .draggable-item {
+  cursor: grab;
+  outline: 2px dashed var(--accent);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  position: relative; /* Default state, will switch to fixed on drag */
+  z-index: 10000;
+  transition: outline 0.2s, background 0.2s; /* Do not transition top/left during drag */
+  user-select: none;
+}
+
+body.edit-mode .draggable-item:hover {
+  outline: 2px solid var(--accent);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+body.edit-mode .draggable-item:active {
+  cursor: grabbing;
+}
+
+/* Ensure controls are on top */
+.bottom-left-controls, .bottom-right-controls {
+  z-index: 9999;
+}
+
+/* Ensure modals are even higher */
+.modal {
+  z-index: 20000;
+}

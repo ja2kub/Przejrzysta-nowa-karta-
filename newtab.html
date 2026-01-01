@@ -33,7 +33,7 @@
     <div class="center-wrap">
       <div class="clock" id="clock">--:--</div>
 
-      <div class="search-box">
+      <div class="search-box" id="searchBox">
         <form id="searchForm" autocomplete="off">
           <input id="searchInput" name="q" type="text" placeholder="Szukaj..." />
         </form>
@@ -46,7 +46,7 @@
   </div>
 
   <!-- Bottom Left: Customize (Personalizacja) -->
-  <div class="bottom-left-controls">
+  <div class="bottom-left-controls" id="controlsLeft">
     <button id="customizeBtn" class="control-btn menu-toggle" data-i18n="customizeBtn">Personalizacja</button>
 
     <div id="customizeMenu" class="menu-content hidden">
@@ -78,7 +78,7 @@
   </div>
 
   <!-- Bottom Right: View (Widok) -->
-  <div class="bottom-right-controls">
+  <div class="bottom-right-controls" id="controlsRight">
     <button id="viewBtn" class="control-btn menu-toggle" data-i18n="viewBtn">Widok</button>
 
     <div id="viewMenu" class="menu-content hidden">
@@ -97,6 +97,14 @@
 
       <button id="langToggle" class="menu-item">
         <span data-i18n="language">Język: PL</span>
+      </button>
+
+      <button id="editLayoutBtn" class="menu-item">
+        <span data-i18n="editLayout">Edytuj układ</span>
+      </button>
+
+      <button id="resetLayoutBtn" class="menu-item">
+        <span data-i18n="resetLayout">Zresetuj układ</span>
       </button>
     </div>
   </div>

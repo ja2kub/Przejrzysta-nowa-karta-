@@ -2,25 +2,33 @@
 from playwright.sync_api import sync_playwright
 import os
 
-def run(playwright):
-    browser = playwright.chromium.launch(headless=True)
-    page = browser.new_page()
-    page.on("console", lambda msg: print(f"Console: {msg.text}"))
-    page.goto(f"file://{os.getcwd()}/newtab.html")
+def run():
+    file_path = os.path.abspath('newtab.html')
+    url = f'file://{file_path}'
 
-    print("Clicking Add Shortcut")
-    page.click("#addShortcutBtn")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url)
 
-    # Wait for selector explicitly
-    try:
-        page.wait_for_selector("#customModal", state="visible", timeout=3000)
-        print("Modal visible!")
-    except:
-        print("Modal check failed")
+        page.click('#viewBtn')
+        page.wait_for_selector('#viewMenu:not(.hidden)')
+        page.click('#editLayoutBtn')
 
-    page.screenshot(path="verification/custom_prompt_fixed.png")
+        # Drag
+        search_box = page.locator('#searchBox')
+        box = search_box.bounding_box()
+        start_x = box['x'] + box['width'] / 2
+        start_y = box['y'] + box['height'] / 2
 
-    browser.close()
+        page.mouse.move(start_x, start_y)
+        page.mouse.down()
+        page.mouse.move(start_x + 200, start_y + 200, steps=10)
+        page.mouse.up()
 
-with sync_playwright() as playwright:
-    run(playwright)
+        page.screenshot(path='verification/final_verify.png')
+        browser.close()
+
+if __name__ == '__main__':
+    run()
+
