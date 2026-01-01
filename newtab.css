@@ -807,3 +807,13 @@ body.edit-mode .weather-widget * {
 .draggable-item {
   overflow: visible !important;
 }
+
+/* Specificity Fix for Resize Handle Interaction */
+body.edit-mode .draggable-item .resize-handle {
+  pointer-events: auto !important;
+}
+
+/* Ensure resize handle is always on top of everything inside the item */
+.resize-handle {
+  z-index: 99999;
+}

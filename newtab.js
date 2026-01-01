@@ -876,8 +876,9 @@ let suppressClick = false;
 
 // Resize Handle State
 let resizeEl = null;
-let resizeStartY = 0;
 let resizeStartScale = 1.0;
+let resizeCenter = { x: 0, y: 0 };
+let resizeStartDist = 0;
 
 function onMouseDown(e) {
   if (!isEditMode) return;
@@ -892,10 +893,20 @@ function onMouseDown(e) {
       const parent = resizeHandle.closest(".draggable-item");
       if (parent) {
           resizeEl = parent;
-          resizeStartY = e.clientY;
           const id = parent.id;
           if (!guiPositions[id]) guiPositions[id] = {};
           resizeStartScale = guiPositions[id].scale || 1.0;
+
+          // Calculate Center and Start Distance
+          const rect = parent.getBoundingClientRect();
+          resizeCenter = {
+              x: rect.left + rect.width / 2,
+              y: rect.top + rect.height / 2
+          };
+          const dx = e.clientX - resizeCenter.x;
+          const dy = e.clientY - resizeCenter.y;
+          resizeStartDist = Math.sqrt(dx*dx + dy*dy);
+
           document.addEventListener("mousemove", onResizeMove);
           document.addEventListener("mouseup", onResizeUp);
       }
@@ -992,10 +1003,17 @@ function onResizeMove(e) {
     if (!resizeEl) return;
     e.preventDefault();
 
-    const dy = e.clientY - resizeStartY;
-    // Scale sensitivity: 100px drag = 0.5 scale change
-    const deltaScale = dy * 0.005;
-    let newScale = resizeStartScale + deltaScale;
+    const dx = e.clientX - resizeCenter.x;
+    const dy = e.clientY - resizeCenter.y;
+    const currentDist = Math.sqrt(dx*dx + dy*dy);
+
+    // Calculate new scale based on distance ratio
+    // If we move away from center, ratio > 1 -> scale increases
+    // If we move towards center, ratio < 1 -> scale decreases
+    // Use a small buffer to avoid division by zero or extreme jumps if click was near center (unlikely for corner handle)
+    if (resizeStartDist < 5) return;
+
+    let newScale = resizeStartScale * (currentDist / resizeStartDist);
 
     // Limits
     if (newScale < 0.5) newScale = 0.5;
