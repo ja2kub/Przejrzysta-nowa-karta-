@@ -316,6 +316,7 @@ function setupMenus() {
     const menu = toggle.nextElementSibling;
     if (!menu || !menu.classList.contains("menu-content")) return;
     toggle.addEventListener("click", (e) => {
+      if (document.body.classList.contains("edit-mode")) return;
       e.stopPropagation();
       document.querySelectorAll(".menu-content").forEach(m => {
         if (m !== menu) m.classList.add("hidden");
@@ -323,12 +324,14 @@ function setupMenus() {
       menu.classList.remove("hidden");
     });
     toggle.addEventListener("mouseenter", () => {
+      if (document.body.classList.contains("edit-mode")) return;
       document.querySelectorAll(".menu-content").forEach(m => {
         if (m !== menu) m.classList.add("hidden");
       });
       menu.classList.remove("hidden");
     });
     toggle.addEventListener("mouseleave", (e) => {
+       if (document.body.classList.contains("edit-mode")) return;
        setTimeout(() => {
          if (!menu.matches(":hover") && !toggle.matches(":hover")) {
            menu.classList.add("hidden");
@@ -336,6 +339,7 @@ function setupMenus() {
        }, 100);
     });
     menu.addEventListener("mouseleave", () => {
+      if (document.body.classList.contains("edit-mode")) return;
       setTimeout(() => {
          if (!menu.matches(":hover") && !toggle.matches(":hover")) {
            menu.classList.add("hidden");
@@ -344,6 +348,7 @@ function setupMenus() {
     });
   });
   document.addEventListener("click", (e) => {
+    if (document.body.classList.contains("edit-mode")) return;
     if (!e.target.closest(".menu-content") && !e.target.closest(".menu-toggle")) {
       document.querySelectorAll(".menu-content").forEach(m => m.classList.add("hidden"));
     }
@@ -874,7 +879,16 @@ function onMouseDown(e) {
   const target = e.target.closest(".draggable-item");
   if (!target) return;
 
+  // Prevent focus/default actions immediately
+  e.preventDefault();
+
   dragEl = target;
+
+  // Capture current width for searchBox immediately to prevent visual jump
+  if (dragEl.id === "searchBox") {
+      const w = dragEl.offsetWidth;
+      dragEl.style.width = w + "px";
+  }
 
   // Store start coordinates
   const rect = dragEl.getBoundingClientRect();

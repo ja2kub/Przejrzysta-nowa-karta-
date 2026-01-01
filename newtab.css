@@ -724,3 +724,23 @@ body.edit-mode .draggable-item:active {
   /* This ensures that if it floats, it doesn't collapse completely */
   min-width: 300px;
 }
+
+/* Disable interaction with children of draggable items in edit mode */
+body.edit-mode .draggable-item * {
+  pointer-events: none !important;
+}
+
+/* Ensure the draggable container itself is interactive */
+body.edit-mode .draggable-item {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+body.edit-mode .draggable-item:active {
+  cursor: grabbing;
+}
+
+/* Specific fix for Weather Widget to ensure it stays draggable */
+body.edit-mode .weather-widget * {
+  pointer-events: none !important;
+}

@@ -1,0 +1,16 @@
+
+<html>
+<style>
+  #parent { width: 100px; height: 100px; background: red; padding: 20px; }
+  #child { width: 100%; height: 100%; background: blue; pointer-events: none; }
+</style>
+<body>
+  <div id="parent">
+    <div id="child"></div>
+  </div>
+  <script>
+    document.getElementById("parent").addEventListener("mousedown", (e) => console.log("Parent clicked", e.target.id));
+    document.body.addEventListener("mousedown", (e) => console.log("Body clicked", e.target.id));
+  </script>
+</body>
+</html>
