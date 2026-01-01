@@ -189,7 +189,8 @@ html,body{
 /* Menu Content (Popup) */
 .menu-content {
   position: absolute;
-  bottom: 55px; /* above the toggle button */
+  bottom: 100%;
+  margin-bottom: 10px;
   background: var(--glass-strong);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
