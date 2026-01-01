@@ -237,7 +237,11 @@ const translations = {
     humidity: "Wilgotność",
     wind: "Wiatr",
     modalConfirmTitle: "Potwierdź",
-    modalAlertTitle: "Info"
+    modalAlertTitle: "Info",
+    editLayout: "Edytuj układ",
+    exitEditLayout: "Zakończ edycję",
+    resetLayout: "Zresetuj układ",
+    resetLayoutConfirm: "Czy na pewno przywrócić domyślny układ?"
   },
   en: {
     addShortcut: "＋ Add Shortcut",
@@ -266,7 +270,11 @@ const translations = {
     humidity: "Humidity",
     wind: "Wind",
     modalConfirmTitle: "Confirm",
-    modalAlertTitle: "Info"
+    modalAlertTitle: "Info",
+    editLayout: "Edit Layout",
+    exitEditLayout: "Finish Editing",
+    resetLayout: "Reset Layout",
+    resetLayoutConfirm: "Are you sure you want to reset layout?"
   }
 };
 
@@ -773,3 +781,190 @@ if (dateToggle) {
 
 setInterval(updateDate, 60 * 1000);
 updateDateVisibility();
+
+// ====== EDIT LAYOUT MODE ======
+let isEditMode = false;
+let guiPositions = JSON.parse(localStorage.getItem("guiPositions") || "{}");
+const editLayoutBtn = document.getElementById("editLayoutBtn");
+const resetLayoutBtn = document.getElementById("resetLayoutBtn");
+
+const draggableIds = [
+  "clock",
+  "searchBox",
+  "shortcuts",
+  "addShortcutBtn",
+  "dateWidget",
+  "weatherWidget",
+  "controlsLeft",
+  "controlsRight"
+];
+
+function loadGuiPositions() {
+  draggableIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const pos = guiPositions[id];
+    if (pos) {
+      el.style.position = "fixed";
+      el.style.left = pos.left;
+      el.style.top = pos.top;
+      el.style.right = "auto"; // override default right/bottom if needed
+      el.style.bottom = "auto";
+      el.style.margin = "0";   // clear centering margins
+      el.style.transform = "none"; // clear centering transforms if any
+    }
+  });
+}
+
+function resetGuiPositions() {
+  guiPositions = {};
+  localStorage.removeItem("guiPositions");
+  window.location.reload();
+}
+
+function toggleEditMode() {
+  isEditMode = !isEditMode;
+  if (isEditMode) {
+    document.body.classList.add("edit-mode");
+    enableDrag();
+    updateLanguage(); // to update button text
+  } else {
+    document.body.classList.remove("edit-mode");
+    disableDrag();
+    updateLanguage();
+  }
+}
+
+// Drag State
+let dragEl = null;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragStartLeft = 0;
+let dragStartTop = 0;
+let isDragging = false;
+let suppressClick = false;
+
+function onMouseDown(e) {
+  if (!isEditMode) return;
+  // Find draggable parent
+  const target = e.target.closest(".draggable-item");
+  if (!target) return;
+
+  dragEl = target;
+
+  // Store start coordinates
+  const rect = dragEl.getBoundingClientRect();
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragStartLeft = rect.left;
+  dragStartTop = rect.top;
+
+  isDragging = false;
+
+  document.addEventListener("mousemove", onMouseMove);
+  document.addEventListener("mouseup", onMouseUp);
+}
+
+function onMouseMove(e) {
+  if (!dragEl) return;
+
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
+
+  // Threshold to detect drag vs click
+  if (!isDragging && Math.sqrt(dx*dx + dy*dy) > 5) {
+      isDragging = true;
+
+      // Initialize styling for drag
+      dragEl.style.position = "fixed";
+      dragEl.style.left = dragStartLeft + "px";
+      dragEl.style.top = dragStartTop + "px";
+      dragEl.style.right = "auto";
+      dragEl.style.bottom = "auto";
+      dragEl.style.margin = "0";
+      dragEl.style.transform = "none";
+  }
+
+  if (isDragging) {
+      e.preventDefault(); // prevent selection
+      dragEl.style.left = (dragStartLeft + dx) + "px";
+      dragEl.style.top = (dragStartTop + dy) + "px";
+  }
+}
+
+function onMouseUp(e) {
+  if (!dragEl) return;
+
+  if (isDragging) {
+      // Save position
+      const id = dragEl.id;
+      if (id) {
+        guiPositions[id] = {
+          left: dragEl.style.left,
+          top: dragEl.style.top
+        };
+        localStorage.setItem("guiPositions", JSON.stringify(guiPositions));
+      }
+      // Suppress the subsequent click event
+      suppressClick = true;
+      setTimeout(() => suppressClick = false, 50);
+  }
+
+  dragEl = null;
+  isDragging = false;
+  document.removeEventListener("mousemove", onMouseMove);
+  document.removeEventListener("mouseup", onMouseUp);
+}
+
+// Global capture listener to stop clicks if we just dragged
+document.addEventListener("click", (e) => {
+    if (suppressClick) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, true);
+
+function enableDrag() {
+  draggableIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("draggable-item");
+  });
+  document.addEventListener("mousedown", onMouseDown);
+}
+
+function disableDrag() {
+  draggableIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove("draggable-item");
+  });
+  document.removeEventListener("mousedown", onMouseDown);
+}
+
+if (editLayoutBtn) {
+  editLayoutBtn.addEventListener("click", () => {
+    toggleEditMode();
+    // Update button text logic is handled in updateLanguage,
+    // but we need to hook into it or just toggle specific text here.
+    // Let's use the updateLanguage mechanism by changing the data-i18n attribute or handling it there.
+    // Actually, updateLanguage checks isFocusMode. We should add similar check for edit mode or just swap text manually for now.
+    const t = translations[currentLang];
+    const span = editLayoutBtn.querySelector("span");
+    if (span) {
+       span.dataset.i18n = isEditMode ? "exitEditLayout" : "editLayout";
+       span.textContent = t[span.dataset.i18n];
+    }
+  });
+}
+
+if (resetLayoutBtn) {
+  resetLayoutBtn.addEventListener("click", async () => {
+    const t = translations[currentLang];
+    const ok = await customConfirm(t.resetLayoutConfirm);
+    if (ok) {
+      resetGuiPositions();
+    }
+  });
+}
+
+// Initial load
+loadGuiPositions();
