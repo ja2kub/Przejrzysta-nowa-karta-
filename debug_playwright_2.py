@@ -9,26 +9,23 @@ def run():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
+        page.on('console', lambda msg: print(f'Console: {msg.text}'))
         page.goto(url)
 
         page.click('#viewBtn')
         page.wait_for_selector('#viewMenu:not(.hidden)')
         page.click('#editLayoutBtn')
 
-        # Drag
-        search_box = page.locator('#searchBox')
-        box = search_box.bounding_box()
-        start_x = box['x'] + box['width'] / 2
-        start_y = box['y'] + box['height'] / 2
+        page.wait_for_timeout(100)
 
-        page.mouse.move(start_x, start_y)
-        page.mouse.down()
-        page.mouse.move(start_x + 200, start_y + 200, steps=10)
-        page.mouse.up()
+        count = page.evaluate('document.querySelectorAll(".resize-handle").length')
+        print(f'Handle Count: {count}')
 
-        page.screenshot(path='verification/final_verify.png')
+        # Check draggable item class on clock
+        clock_classes = page.evaluate('document.getElementById("clock").className')
+        print(f'Clock Classes: {clock_classes}')
+
         browser.close()
 
 if __name__ == '__main__':
     run()
-

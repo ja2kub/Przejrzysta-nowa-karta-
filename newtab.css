@@ -189,7 +189,8 @@ html,body{
 /* Menu Content (Popup) */
 .menu-content {
   position: absolute;
-  bottom: 55px; /* above the toggle button */
+  bottom: 100%;
+  margin-bottom: 10px;
   background: var(--glass-strong);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -660,3 +661,160 @@ body.focus-mode .date-widget {
 
 /* Generic utility */
 .hidden { display: none !important; }
+
+/* Edit Mode Styles */
+body.edit-mode .draggable-item {
+  cursor: grab;
+  outline: 2px dashed var(--accent);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  position: relative; /* Default state, will switch to fixed on drag */
+  z-index: 10000;
+  transition: outline 0.2s, background 0.2s; /* Do not transition top/left during drag */
+  user-select: none;
+}
+
+body.edit-mode .draggable-item:hover {
+  outline: 2px solid var(--accent);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+body.edit-mode .draggable-item:active {
+  cursor: grabbing;
+}
+
+/* Ensure controls are on top */
+.bottom-left-controls, .bottom-right-controls {
+  z-index: 9999;
+}
+
+/* Ensure modals are even higher */
+.modal {
+  z-index: 20000;
+}
+
+/* Exit Edit Mode Button */
+.exit-edit-btn {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20000;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+.exit-edit-btn:hover {
+  background: linear-gradient(135deg, var(--accent) 0%, #ff6666 100%);
+  transform: translateX(-50%) scale(1.05);
+}
+.exit-edit-btn.hidden {
+  display: none;
+}
+
+/* Ensure Search Box keeps width in Edit Mode */
+/* We will handle exact pixel width in JS, but let's give it a min-width just in case */
+#searchBox.draggable-item {
+  /* This ensures that if it floats, it doesn't collapse completely */
+  min-width: 300px;
+}
+
+/* Disable interaction with children of draggable items in edit mode */
+body.edit-mode .draggable-item * {
+  pointer-events: none !important;
+}
+
+/* Ensure the draggable container itself is interactive */
+body.edit-mode .draggable-item {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+body.edit-mode .draggable-item:active {
+  cursor: grabbing;
+}
+
+/* Specific fix for Weather Widget to ensure it stays draggable */
+body.edit-mode .weather-widget * {
+  pointer-events: none !important;
+}
+
+/* Edit Mode Controls Wrapper */
+.edit-mode-controls {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.edit-mode-controls.hidden {
+  display: none;
+}
+
+/* Reset exit button positioning since it's now in a flex container */
+.exit-edit-btn {
+  position: static;
+  transform: none;
+}
+.exit-edit-btn:hover {
+  transform: scale(1.05);
+}
+
+.edit-hint {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.8);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.4);
+  padding: 4px 10px;
+  border-radius: 99px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Resize Handle */
+.resize-handle {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  z-index: 10001;
+  pointer-events: auto !important; /* Override the * pointer-events: none */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  opacity: 0.8;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.resize-handle:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* Ensure handle is visible even if overflow is hidden (though usually overflow is visible) */
+.draggable-item {
+  overflow: visible !important;
+}
+
+/* Specificity Fix for Resize Handle Interaction */
+body.edit-mode .draggable-item .resize-handle {
+  pointer-events: auto !important;
+}
+
+/* Ensure resize handle is always on top of everything inside the item */
+.resize-handle {
+  z-index: 99999;
+}

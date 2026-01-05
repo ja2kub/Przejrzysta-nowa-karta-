@@ -15,20 +15,12 @@ def run():
         page.wait_for_selector('#viewMenu:not(.hidden)')
         page.click('#editLayoutBtn')
 
-        # Drag
-        search_box = page.locator('#searchBox')
-        box = search_box.bounding_box()
-        start_x = box['x'] + box['width'] / 2
-        start_y = box['y'] + box['height'] / 2
+        # Inject debug script
+        with open('debug_script.js', 'r') as f:
+            script = f.read()
+            page.evaluate(script)
 
-        page.mouse.move(start_x, start_y)
-        page.mouse.down()
-        page.mouse.move(start_x + 200, start_y + 200, steps=10)
-        page.mouse.up()
-
-        page.screenshot(path='verification/final_verify.png')
         browser.close()
 
 if __name__ == '__main__':
     run()
-
